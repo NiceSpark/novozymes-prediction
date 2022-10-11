@@ -1,0 +1,17 @@
+﻿Type,Name,Status,Score /5,Tags,Date,Link
+Article,Towards an accurate prediction of the thermal stability of homologous proteins,Ready to Start,⭐️⭐️⭐️⭐️,,,
+Article,"ProTstab – predictor for cellular protein
+stability",Finished,⭐️⭐️⭐️⭐️,features,2019,
+Video,Khan academy: biomolecules ⇒ protein stability,Ready to Start,⭐️⭐️⭐️⭐️,,,https://www.khanacademy.org/test-prep/mcat/biomolecules
+Article,"Protein stability: computation, sequence statistics, and new
+experimental methods",Finished,⭐️⭐️⭐️⭐️,features,2015,
+Article,"Rapid protein stability prediction
+using deep learning representations",Finished,⭐️⭐️⭐️,,2022,
+Article,Predicting changes in protein thermodynamic stability upon point mutation with deep 3D convolutional neural networks,Ready to Start,⭐️⭐️⭐️,,2020,
+Article,A Deep-Learning Sequence-Based Method to Predict Protein Stability Changes Upon Genetic Variations,To summarize,⭐️⭐️⭐️,,2021,https://github.com/compbiomed-unito/acdc-nn
+Web page,Protein Primary Structure,,⭐️⭐️⭐️,,,https://en.wikipedia.org/wiki/Protein_primary_structure
+Article,"Automated Protein Design and Sequence Optimisation: Scoring Functions
+and the Search Problem",Ready to Start,⭐️,,2000,
+Web page,ThermoNet,,,,,
+Web page,ProTstab,,,,,
+Web page,Protein prediction (linked from ProTstab),,,,,https://structure-next.med.lu.se/PON-All/

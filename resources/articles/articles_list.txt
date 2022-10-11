@@ -1,0 +1,19 @@
+.:
+AI challenges for predicting the impact of mutations on protein stability.pdf
+articles_list.txt
+Automated Protein Design and Sequence Optimisation: Scoring Functions.pdf
+DDGun: an untrained method.pdf
+Evaluating Protein Engineering Thermostability Prediction Tools.pdf
+MAESTRO - multi agent stability prediction.pdf
+Predicting changes in protein thermodynamic stability upon point mutation with deep 3D convolutional neural networks.pdf
+Predicting protein stability changes upon single-point.pdf
+Prediction of Protein Stability Changes for Single Site Mutations Using Support Vector Machines.pdf
+ProS-GNN: Predicting effects of mutations on protein stability using graph neural networks.pdf
+ThermoMutDB: a thermodynamic database for missense mutations.pdf
+Towards an accurate prediction of the thermal stability of homologous proteins.pdf
+
+./summarized:
+A Deep-Learning Sequence-Based Method to Predict Protein Stability Changes Upon Genetic Variations.pdf
+Protein_stability_computation_sequence_statistics_compressed.pdf
+ProTstab – predictor for cellular protein.pdf
+Rapid protein stability prediction.pdf
