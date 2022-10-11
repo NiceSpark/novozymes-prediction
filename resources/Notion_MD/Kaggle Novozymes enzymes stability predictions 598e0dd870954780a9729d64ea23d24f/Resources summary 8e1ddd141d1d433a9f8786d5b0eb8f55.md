@@ -123,4 +123,64 @@ pre-trained ACDC-NN-Seq using the predictions of another method, DDGun3D
 
 ---
 
-###
+### AI challenges for predicting the impact of mutations on protein stability (2021)
+
+![List of AI-based DDG predictors studied.png](Resources%20summary%208e1ddd141d1d433a9f8786d5b0eb8f55/List_of_AI-based_DDG_predictors_studied.png)
+
+- found that accuracy of the **predictors has stagnated at around 1 kcal/mol** (RMSE)
+- methods use information abt prot seq, structure and evolution
+- *links to excellent reviews and comparative tests*
+- features used:
+    - almost all based on the 3D protein structure
+    - relative solvent accessible surface area (RSA)
+    - changes:
+        - in folding free energy (∆∆W)
+        - in volume of mutated residue (∆Vol)
+        - in residue hydrophobicity (∆Hyd)
+    - evolutionnary infos:
+        - multiple seq alignments of the query protein
+        - substitution matrices (eg. BLOSUM62)
+- good results w/ very simple model consisting of a linear combination of 3 features:
+    - **RSA of mutated residues**
+    - **∆Vol**
+    - **∆Hyd**
+- FoldX & Rosetta: do a bit worse than AI based methods, could be due to detailed atomic representation which makes them sensitive to resolution defects
+- ⇒ accuracy **limit of 1 kcal/mol could be due to**:
+    - low number of mutations in the training set
+    - fundamental reasons in biology
+    - uncontrolled biases in predictors
+    - approximations on which predictors are based (wild type structure not mutant one etc.)
+    - entropy contributions to the folding free energy overlooked
+    - intrinsic errors on experimental ∆∆G values (measures not with same T & pH for ex.)
+- boost of prediction accuracy by selecting features that have not yet been combined
+- antisymmetry property should be satisfied, see Ssym data set, deviation from antisymmetry δ = ∆∆G(A →B) + ∆∆G(B → A) is an important measure for the evaluation of the lack of bias.
+- *talk about unbiased dataset created by Cladararu et al.* Systematic investigation of the data set dependency of protein stability predictors
+- *New data have recently been collected:*
+    - R. Nikam, A. Kulandaisamy, K. Harini, D. Sharma, M. M. Gromiha, ProThermDB: thermodynamic database for proteins and mutants revisited after 15 years, Nucleic Acids Research 49 (D1) (2021) D420–D424
+    - ThermoMutDB
+    - J. Stourac, J. Dubrava, M. Musil, J. Horackova, J. Damborsky, S. Mazurenko, D. Bednar, FireProtDB: database of manually curated protein stability data, Nucleic acids research 49 (D1) (2021) D319–D324
+- not a lot of data for deep learning, even though pretraining can help prevent overfitting to some extent
+- could add Metagenomic sequence (not doable here IMO)
+
+---
+
+### Towards Compilation of Balanced Protein Stability Datasets: Flattening the ∆∆G Curve through Systematic Under-sampling
+
+- created a curated PON-tstab dataset via
+    1. clustering mutations based on biochemical and/or structural features 
+    2. selecting 3 mutations from every 2kcal/mol of each cluster
+    3. Finally systematic under sampling
+- result: datasets with a better ∆∆G distributions
+- Under-sampling code is available on GitHub ([https://github.com/narodkebabci/gRoR](https://github.com/narodkebabci/gRoR))
+- datasets:
+    - have a lot of neutral mutations (-0.5 < ∆∆G < 0.5) + more destabilizing mutations (⇒ bias toward destabilization)
+    - have a lot more alanine replacement mutations ⇒ more bias
+    - Evidently, not only the asymmetry (skewness) but also peaked-ness (kurtosis) of the ∆∆G distributions needs specific attention to compile ideal datasets.
+
+---
+
+### Khan academy: biomolecules ⇒ protein stability
+
+[https://www.khanacademy.org/test-prep/mcat/biomolecules](https://www.khanacademy.org/test-prep/mcat/biomolecules)
+
+![Screenshot from 2022-10-11 17-40-18.png](Resources%20summary%208e1ddd141d1d433a9f8786d5b0eb8f55/Screenshot_from_2022-10-11_17-40-18.png)

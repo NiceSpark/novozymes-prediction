@@ -9,10 +9,12 @@ Data: check PROFEAT,,Not started
 Data: look at what features can be easily obtained,,Not started
 Data: Check Kagglers’ datasets,,Not started
 ML: 1st baseline model,,Not started
-Bio: read additional articles,,Not started
+Bio: read additional articles,,Done
 Data: check the mutations in test dataset: only one type of mutation (Alamine) or all 20 possible ?,,Not started
 "Data: check the training dataset: lots of single point mutation (many entries for each proteins), or not (one/a few entries for each proteins)",,Not started
-Bio: get list of most important features,,Done
+Bio: link btw DDG and Tm,,Not started
 Bio: get general understanding,,Done
-"Bio: list of interesting ressources ",,Done
+Bio: get list of most important features,,Done
 Bio: write short summary,,Done
+"Bio: list of interesting ressources ",,Done
+ML: read ML method specific articles,,Not started
