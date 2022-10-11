@@ -3,5 +3,5 @@
 Date: 2021
 Link: https://github.com/compbiomed-unito/acdc-nn
 Score /5: ⭐️⭐️⭐️
-Status: To summarize
+Status: Finished
 Type: Article

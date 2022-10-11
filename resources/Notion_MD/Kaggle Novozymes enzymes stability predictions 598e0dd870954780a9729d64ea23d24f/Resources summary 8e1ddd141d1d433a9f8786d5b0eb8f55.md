@@ -111,6 +111,16 @@ pre-trained ACDC-NN-Seq using the predictions of another method, DDGun3D
 
 ---
 
-### **Predicting changes in protein thermodynamic stability upon point mutation with deep 3D convolutional neural networks (2020)**
+### ThermoMutDB: a thermodynamic database for missense mutations ()
 
-ToDo
+![ThermoMutDB_explained.pdf.png](Resources%20summary%208e1ddd141d1d433a9f8786d5b0eb8f55/ThermoMutDB_explained.pdf.png)
+
+---
+
+### FireProtDB:
+
+![https://loschmidt.chemi.muni.cz/fireprotdb/images/workflow.png](https://loschmidt.chemi.muni.cz/fireprotdb/images/workflow.png)
+
+---
+
+###

@@ -1,0 +1,35 @@
+﻿Type,Name,Status,Score /5,Tags,Date,Link
+Article,"AI challenges for predicting
+the impact of mutations on protein stability",To summarize,⭐️⭐️⭐️⭐️⭐️,,2021,
+Article,Towards Compilation of Balanced Protein Stability Datasets: Flattening the ∆∆G Curve through Systematic Under-sampling,Ready to Start,⭐️⭐️⭐️⭐️,,2021,
+Article,"PSP-GNM: Predicting Protein Stability Changes upon Point
+Mutations with a Gaussian Network Model",Ready to Start,⭐️⭐️⭐️⭐️,,2022,
+Article,"ProTstab – predictor for cellular protein
+stability",Finished,⭐️⭐️⭐️⭐️,features,2019,
+Video,Khan academy: biomolecules ⇒ protein stability,Ready to Start,⭐️⭐️⭐️⭐️,,,https://www.khanacademy.org/test-prep/mcat/biomolecules
+Article,"Protein stability: computation, sequence statistics, and new
+experimental methods",Finished,⭐️⭐️⭐️⭐️,features,2015,
+Article,"Rapid protein stability prediction
+using deep learning representations",Finished,⭐️⭐️⭐️,,2022,
+Article,Predicting changes in protein thermodynamic stability upon point mutation with deep 3D convolutional neural networks,Ready to Start,⭐️⭐️⭐️,,2020,
+Article,A Deep-Learning Sequence-Based Method to Predict Protein Stability Changes Upon Genetic Variations,Finished,⭐️⭐️⭐️,,2021,https://github.com/compbiomed-unito/acdc-nn
+Web page,Protein Primary Structure,,⭐️⭐️⭐️,,,https://en.wikipedia.org/wiki/Protein_primary_structure
+Article,Towards an accurate prediction of the thermal stability of homologous proteins,Ready to Start,⭐️⭐️,,2015,
+Article,"Automated Protein Design and Sequence Optimisation: Scoring Functions
+and the Search Problem",Ready to Start,⭐️,,2000,
+Article,Prediction of Protein Stability Changes for Single Site Mutations Using Support Vector Machines,Ready to Start,,,,
+Article,ProS-GNN: Predicting effects of mutations on protein stability using graph neural networks,Ready to Start,,,,
+Article,"Evaluating Protein Engineering Thermostability Prediction Tools
+Using an Independently Generated Dataset",Ready to Start,,,,
+Article,"ThermoMutDB: a thermodynamic database for
+missense mutations",Ready to Start,,,2020,
+Article,DDGun: an untrained method,Ready to Start,,,,
+Article,"MAESTRO - multi agent stability prediction
+upon point mutations",Ready to Start,,,,
+Web page,ThermoMutDB,,,,,https://academic.oup.com/nar/article/49/D1/D475/5937085
+Article,"Predicting protein stability changes upon single-point
+mutation: a thorough comparison of the available tools
+on a new dataset",Ready to Start,,,,
+Web page,ThermoNet,,,,,
+Web page,ProTstab,,,,,
+Web page,Protein prediction (linked from ProTstab),,,,,https://structure-next.med.lu.se/PON-All/
