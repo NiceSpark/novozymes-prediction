@@ -29,9 +29,6 @@ Files
 **wildtype_structure_prediction_af2.pdb** - the 3 dimensional structure of the enzyme listed above, as predicted by AlphaFold
 
 
-## Ressources:
+## Resources:
 
-### Articles
-
-### Learning ressources
-https://www.khanacademy.org/test-prep/mcat/biomolecules#amino-acids-and-proteins1
+See the Notion export in resources/ for more infos
