@@ -1,0 +1,11 @@
+name,link
+DeepDDG,http://protein.org.cn/uploads/ddg/datasetDDG.xlsx
+FireProtDB,https://loschmidt.chemi.muni.cz/fireprotdb/ 
+Kaggle,https://www.kaggle.com/competitions/novozymes-enzyme-stability-prediction/data
+mutation-stability-data,https://github.com/JinyuanSun/mutation-stability-data
+O2567_new,https://pubs.acs.org/doi/10.1021/acs.jcim.0c00591?goto=supporting-info
+curated_PON-tstab,https://osf.io/ja4we/?view_only=d4a1ed4e7c47480f9ecd04b252b79871
+PON-All_train_dataset,https://structure-next.med.lu.se/PON-All/download/ponall_dataset
+ProTstab_train_dataset,http://structure.bmc.lu.se/VariBench/protein_stability/
+Ssym+,https://academic.oup.com/bib/article/23/2/bbab555/6502552#supplementary-data
+ThermoMutDB,http://biosig.unimelb.edu.au/thermomutdb/downloads
