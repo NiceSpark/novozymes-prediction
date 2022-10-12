@@ -2,6 +2,6 @@
 Mutations with a Gaussian Network Model
 
 Date: 2022
-Score /5: ⭐️⭐️⭐️⭐️
-Status: Ready to Start
+Score /5: ⭐️⭐️⭐️
+Status: To summarize
 Type: Article

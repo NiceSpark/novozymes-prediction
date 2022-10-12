@@ -1,20 +1,25 @@
-﻿Name,Assign,Status
-Data: S2648,,Not started
-Data: Varibench,,Not started
-Data: Understand how AlphaFold 2 data works/how to get them etc.,,Not started
-Data: check DDGun3D,,Not started
-Data: check ProtDCal,,Not started
-Data: check PROTEIN RECON,,Not started
-Data: check PROFEAT,,Not started
-Data: look at what features can be easily obtained,,Not started
-Data: Check Kagglers’ datasets,,Not started
-ML: 1st baseline model,,Not started
-Bio: read additional articles,,Done
-Data: check the mutations in test dataset: only one type of mutation (Alamine) or all 20 possible ?,,Not started
-"Data: check the training dataset: lots of single point mutation (many entries for each proteins), or not (one/a few entries for each proteins)",,Not started
-Bio: link btw DDG and Tm,,Not started
-Bio: get general understanding,,Done
-Bio: get list of most important features,,Done
-Bio: write short summary,,Done
-"Bio: list of interesting ressources ",,Done
-ML: read ML method specific articles,,Not started
+﻿Name,Assign,Priority,Status,Type
+Bio: link btw DDG and Tm,,3,Done,Bio
+Bio: read additional articles,,,Done,Bio
+Bio: write short summary,,,Done,Bio
+"Bio: list of interesting ressources ",,,Done,Bio
+Bio: get general understanding,,,Done,Bio
+Bio: get list of most important features,,,Done,Bio
+Merge all available dataset,,3,In progress,Data
+Dowload all available dataset,,3,In progress,Data
+"Data: check the training dataset: lots of single point mutation (many entries for each proteins), or not (one/a few entries for each proteins)",,3,Done,Data
+Data: check the mutations in test dataset: only one type of mutation (Alamine) or all 20 possible ?,,3,Done,Data
+Data: Check Kagglers’ datasets,,3,Done,Data
+Data: Understand what is the most updated db,,3,Done,Data
+check biopython package,,2,Not started,Data
+Data: Understand how AlphaFold 2 data works/how to get them etc.,,2,Not started,Data
+"Data: Evaluating Protein Engineering Thermostability: check that the dataset described is in ThermoMut, should be though",,1,Not started,Data
+Data: check DDGun3D,,1,Not started,Data
+Data: check ProtDCal,,1,Not started,Data
+Data: check PROTEIN RECON,,1,Not started,Data
+Data: check PROFEAT,,1,Not started,Data
+Data: look at what features can be easily obtained,,1,Not started,Data
+ML: 1st baseline model,,3,Not started,ML
+train dTm and ddG together,,2,Not started,ML
+ML: test polynomial features (RSA^2*ΔV*ΔH etc.),,2,Not started,ML
+ML: read ML method specific articles,,2,Not started,ML

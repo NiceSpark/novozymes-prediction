@@ -1,0 +1,31 @@
+.:
+A critical review of five machine learning-based algorithms for predicting protein stability changes upon mutation.pdf
+Automated Protein Design and Sequence Optimisation: Scoring Functions.pdf
+Biological structure and function emerge from scaling unsupervised learning to 250 million protein sequences.pdf
+DDGun: an untrained method.pdf
+d-StructMAn: Containerized structural annotation on the scale from genetic variants to whole proteomes.pdf
+Evaluating Protein Engineering Thermostability Prediction Tools Using an Independently Generated Dataset.pdf
+iStable 2.0: Predicting protein thermal stability changes by integrating various characteristic modules.pdf
+MAESTRO - multi agent stability prediction.pdf
+mCSM: predicting the effects of mutations in proteins using graph-based signatures.pdf
+Performance of Protein Stability Predictors.pdf
+Predicting changes in protein thermodynamic stability upon point mutation with deep 3D convolutional neural networks.pdf
+Prediction of Protein Stability Changes for Single Site Mutations Using Support Vector Machines.pdf
+Prediction of Wild Type Enzyme Thermostability from Amino Acid Sequences.pdf
+ProS-GNN: Predicting effects of mutations on protein stability using graph neural networks.pdf
+ProTstab2 for Prediction of Protein Thermal Stabilitie.pdf
+ProtTrans: Towards Cracking the Language of Life’s Code Through Self-Supervised Deep Learning and High Performance Computing.pdf
+Reviewing Challenges of Predicting Protein Melting Temperature Change Upon Mutation Through the Full Analysis of a Highly Detailed Dataset with High-Resolution Structures.pdf
+Towards an accurate prediction of the thermal stability of homologous proteins.pdf
+
+./summarized:
+A Deep-Learning Sequence-Based Method to Predict Protein Stability Changes Upon Genetic Variations.pdf
+AI challenges for predicting the impact of mutations on protein stability.pdf
+Predicting protein stability changes upon single-point mutation: a thorough comparison of the available tools on a new dataset.pdf
+Predicting protein stability changes upon single-point mutation: a thorough comparison of the available tools on a new dataset_supplementary.pdf
+Protein_stability_computation_sequence_statistics_compressed.pdf
+ProTstab – predictor for cellular protein.pdf
+PSP-GNM: Predicting Protein Stability Changes upon Point Mutations with a Gaussian Network Model.pdf
+Rapid protein stability prediction.pdf
+ThermoMutDB: a thermodynamic database for missense mutations.pdf
+Towards Compilation of Balanced Protein Stability Datasets: Flattening the ∆∆G Curve through Systematic Under-sampling.pdf

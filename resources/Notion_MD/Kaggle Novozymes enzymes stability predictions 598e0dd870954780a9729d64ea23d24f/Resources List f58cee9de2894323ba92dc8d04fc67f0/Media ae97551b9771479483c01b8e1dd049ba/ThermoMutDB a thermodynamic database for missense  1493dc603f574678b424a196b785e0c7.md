@@ -2,5 +2,6 @@
 missense mutations
 
 Date: 2020
-Status: Ready to Start
+Score /5: ⭐️⭐️⭐️
+Status: Finished
 Type: Article
