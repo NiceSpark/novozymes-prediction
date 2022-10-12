@@ -1,4 +1,4 @@
-data/backup/
+data/backup.7z
 data/**/
 __pycache__/
 .ipynb_checkpoints/
