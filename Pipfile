@@ -10,6 +10,9 @@ numpy = "*"
 matplotlib = "*"
 pipenv = "*"
 biopandas = "*"
+biopython = "*"
+beautifulsoup4 = "*"
+pypdb = "*"
 
 [dev-packages]
 ipykernel = "*"
