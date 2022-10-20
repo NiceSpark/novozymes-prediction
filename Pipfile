@@ -13,6 +13,7 @@ biopandas = "*"
 biopython = "*"
 beautifulsoup4 = "*"
 pypdb = "*"
+tqdm = "*"
 
 [dev-packages]
 ipykernel = "*"
