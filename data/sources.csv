@@ -9,3 +9,6 @@ PON-All_train_dataset,https://structure-next.med.lu.se/PON-All/download/ponall_d
 ProTstab_train_dataset,http://structure.bmc.lu.se/VariBench/protein_stability/
 Ssym+,https://academic.oup.com/bib/article/23/2/bbab555/6502552#supplementary-data
 ThermoMutDB,http://biosig.unimelb.edu.au/thermomutdb/downloads
+Kaggle_DDGUN_dataset,https://www.kaggle.com/datasets/ropeonmars/new-files-with-getarea-output-and-ddlg
+Kaggle_DDGUN_ddg,https://www.kaggle.com/datasets/ropeonmars/new-ddg-pdb-files
+
