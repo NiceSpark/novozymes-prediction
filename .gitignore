@@ -3,3 +3,5 @@ data/**/
 __pycache__/
 .ipynb_checkpoints/
 pdb2uniprot/
+resources/mgltools*
+resources/msms
