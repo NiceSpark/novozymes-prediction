@@ -32,6 +32,8 @@ tm: target column. Since only the spearman correlation will be used for the eval
 
 See the Notion export in resources/ for more infos
 
+Some additionnal prediction of protein folding were done using [alphafold notebook](https://colab.research.google.com/github/deepmind/alphafold/blob/main/notebooks/AlphaFold.ipynb#scrollTo=woIxeCPygt7K)
+
 ## Dependencies
 
 Some features are computed using msms, see [this link for download](https://ccsb.scripps.edu/msms/downloads/), as well as [mgltools from the same authors](https://ccsb.scripps.edu/mgltools/downloads/)
