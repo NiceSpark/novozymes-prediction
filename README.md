@@ -37,3 +37,6 @@ Some additionnal prediction of protein folding were done using [alphafold notebo
 ## Dependencies
 
 Some features are computed using msms, see [this link for download](https://ccsb.scripps.edu/msms/downloads/), as well as [mgltools from the same authors](https://ccsb.scripps.edu/mgltools/downloads/)
+
+Some features are computed using DeMaSK, see their [README](https://github.com/Singh-Lab/DeMaSk)
+DeMaSK itself is dependent on [Blastp](https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/) and [UniRef90 in fasta format](https://www.uniprot.org/help/downloads)

@@ -14,6 +14,7 @@ biopython = "*"
 beautifulsoup4 = "*"
 pypdb = "*"
 tqdm = "*"
+demask = {editable = true, path = "./resources/DeMaSk"}
 
 [dev-packages]
 ipykernel = "*"

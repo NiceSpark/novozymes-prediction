@@ -5,3 +5,5 @@ __pycache__/
 pdb2uniprot/
 resources/mgltools*
 resources/msms
+resources/DeMaSk
+resources/ncbi-blast*
