@@ -1,0 +1,83 @@
+{
+    "identification": [
+        "uniprot",
+        "PDB_wild",
+        "dataset_source",
+        "alphafold_path"
+    ],
+    "basics": [
+        "wild_aa",
+        "mutation_position",
+        "mutated_aa",
+        "mutated_chain",
+        "length",
+        "chain_start",
+        "chain_end",
+        "pH",
+        "sequence"
+    ],
+    "blosum": [
+        "blosum62",
+        "blosum80",
+        "blosum90"
+    ],
+    "demask": [
+        "demask_entropy",
+        "demask_log2f_var",
+        "demask_matrix",
+        "demask_score"
+    ],
+    "protein_analysis": [
+        "aromaticity",
+        "charge_at_pH",
+        "flexibility",
+        "gravy",
+        "helix_fraction",
+        "isoelectric_point",
+        "instability_index",
+        "molWeight",
+        "molar_extinction_1",
+        "molar_extinction_2",
+        "sheet_fraction",
+        "turn_fraction"
+    ],
+    "deltas_protein_analysis": [
+        "delta_aromaticity",
+        "delta_charge_at_pH",
+        "delta_flexibility",
+        "delta_gravy",
+        "delta_helix_fraction",
+        "delta_isoelectric_point",
+        "delta_instability_index",
+        "delta_molecular_weight",
+        "delta_molar_extinction_1",
+        "delta_molar_extinction_2",
+        "delta_sheet_fraction",
+        "delta_turn_fraction"
+    ],
+    "3D_structure_analysis": [
+        "bfactor",
+        "sasa",
+        "residue_depth",
+        "c_alpha_depth"
+    ],
+    "dssp_3D_analysis": [
+        "Secondary structure",
+        "Relative ASA",
+        "Psi",
+        "Phi",
+        "NH->O_1_energy",
+        "NH->O_1_relidx",
+        "O->NH_1_energy",
+        "O->NH_1_relidx",
+        "O->NH_2_energy",
+        "O->NH_2_relidx",
+        "NH->O_2_energy",
+        "NH->O_2_relidx"
+    ],
+    "target": [
+        "ddG",
+        "dTm",
+        "Tm"
+    ]
+}

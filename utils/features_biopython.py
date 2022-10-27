@@ -144,10 +144,10 @@ def add_structure_infos(df: pd.DataFrame, compute_sasa=True, compute_depth=True,
         df = add_structure_infos_by_pdb(df, alphafold_path,
                                         compute_sasa, compute_depth, compute_dssp, compute_bfactor)
 
-    # if compute_dssp:
-    # translate the Secondary Structure sign (-: None, H: AlphaHelix etc.) to a number
-    df["Secondary structure"] = df["Secondary structure"].apply(lambda x:
-                                                                DSSP_codes_Secondary_Structure[x].get("value"))
+    if compute_dssp:
+        # translate the Secondary Structure sign (-: None, H: AlphaHelix etc.) to a number
+        df["Secondary structure"] = df["Secondary structure"].apply(lambda x:
+                                                                    DSSP_codes_Secondary_Structure[x].get("value"))
 
     return df
 
@@ -226,5 +226,39 @@ def add_protein_analysis(df):
         return row
 
     df = df.apply(add_more_protein_analysis, axis=1)
+
+    return df
+
+
+def add_demask_predictions_by_uniprot(df: pd.DataFrame, uniprot_id: str):
+    prediction_path = f"./data/main_dataset/DeMaSk_outputs/predictions/{uniprot_id}.txt"
+    demask_df = pd.read_csv(prediction_path, sep='\t')
+
+    def add_infos(row, uniprot_id):
+        if row["uniprot"] == uniprot_id:
+            # demask index residue starting at 1
+            pos = int(row["mutation_position"])+1
+            mutated_aa = str(row["mutated_aa"])
+            wild_aa = str(row["wild_aa"])
+            prediction = demask_df.loc[demask_df["pos"].eq(
+                pos) & demask_df["WT"].eq(wild_aa) & demask_df["var"].eq(mutated_aa)]
+
+            row["demask_score"] = prediction["score"].iloc[0]
+            row["demask_entropy"] = prediction["entropy"].iloc[0]
+            row["demask_log2f_var"] = prediction["log2f_var"].iloc[0]
+            row["demask_matrix"] = prediction["matrix"].iloc[0]
+        return row
+
+    df = df.apply(lambda row: add_infos(row, uniprot_id), axis=1)
+    return df
+
+
+def add_demask_predictions(df: pd.DataFrame):
+    # we add the columns to the df
+    for column in ["demask_score", "demask_entropy", "demask_log2f_var", "demask_matrix"]:
+        df[column] = 0.0
+
+    for uniprot_id in tqdm.tqdm(df.uniprot.unique()):
+        df = add_demask_predictions_by_uniprot(df, uniprot_id)
 
     return df
