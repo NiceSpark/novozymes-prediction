@@ -2,15 +2,41 @@ from Bio.PDB.ResidueDepth import ResidueDepth
 from Bio.PDB.PDBParser import PDBParser
 from Bio.PDB.SASA import ShrakeRupley
 from Bio.SeqUtils.ProtParam import ProteinAnalysis
-from scipy import stats
-import pandas as pd
 import numpy as np
+import pandas as pd
 import tqdm
-import Bio
-import sys
-import os
+from Bio.PDB import PDBParser
+from Bio.PDB.DSSP import DSSP, ss_to_index
+from biopandas.pdb import PandasPdb
+from blosum import BLOSUM
 
-pdb_parser = PDBParser(QUIET=1)
+DSSP_Data_Keys = [
+    "DSSP index",
+    "Amino acid",
+    "Secondary structure",
+    "Relative ASA",
+    "Phi",
+    "Psi",
+    "NH->O_1_relidx",
+    "NH->O_1_energy",
+    "O->NH_1_relidx",
+    "O->NH_1_energy",
+    "NH->O_2_relidx",
+    "NH->O_2_energy",
+    "O->NH_2_relidx",
+    "O->NH_2_energy"
+]
+
+DSSP_codes_Secondary_Structure = {
+    "H": {"value": 0, "name": "Alpha helix (4-12)"},
+    "B": {"value": 1, "name": "Isolated beta-bridge residue"},
+    "E": {"value": 2, "name": "Strand"},
+    "G": {"value": 3, "name": "3-10 helix"},
+    "I": {"value": 4, "name": "Pi helix"},
+    "T": {"value": 5, "name": "Turn"},
+    "S": {"value": 6, "name": "Bend"},
+    "-": {"value": 7, "name": "None"}
+}
 
 
 def get_depth_maps(structure):
@@ -35,7 +61,19 @@ def get_sasa(structure, sr_n_points=250):
     return [x.sasa for x in structure.get_residues()]
 
 
-def add_struct_infos_by_pdb(df: pd.DataFrame, pdb_id: str, uniprot_id: str, alphafold_path: str):
+def get_dssp_data(alphafold_path: str, structure):
+    model = structure[0]
+    dssp = DSSP(model, alphafold_path)
+
+    # result is a list containing len(sequence) elements
+    # each elements contain the DSSP data (Secondary Structure, RSA, etc.) for each residue
+    result = [dict(list(zip(DSSP_Data_Keys, list(dssp_val)))[2:])
+              for dssp_val in list(dssp)]
+    return result
+
+
+def add_structure_infos_by_pdb(df: pd.DataFrame, alphafold_path: str,
+                               compute_sasa: bool, compute_depth: bool, compute_dssp: bool, compute_bfactor: bool):
     """
     add structural information and informations computed from it
     to all rows of a df containing the pdb id pass as argument
@@ -44,64 +82,149 @@ def add_struct_infos_by_pdb(df: pd.DataFrame, pdb_id: str, uniprot_id: str, alph
     if not alphafold_path:
         print(f"no pdb_path found for {alphafold_path}")
         return df
-    struct = pdb_parser.get_structure(pdb_id, alphafold_path)
+    pdb_parser = PDBParser()
+    structure = pdb_parser.get_structure("", alphafold_path)
 
-    sasa_list = get_sasa(struct)
+    # we use dicts to be able to use get() method (no check needed)
+    pos_to_sasa = {}
+    pos_to_residue_depth, pos_to_c_alpha_depth = {}, {}
+    pos_to_dssp = {}
+    pos_to_bfactor = {}
 
-    # we use a dict to be able to use get() method (no check needed)
-    pos_to_sasa = {i: _sasa for i, _sasa in enumerate(sasa_list)}
-    pos_to_residue_depth, pos_to_c_alpha_depth = get_depth_maps(struct)
+    if compute_sasa:
+        sasa_list = get_sasa(structure)
+        pos_to_sasa = {i: _sasa for i, _sasa in enumerate(sasa_list)}
+    if compute_depth:
+        pos_to_residue_depth, pos_to_c_alpha_depth = get_depth_maps(structure)
+    if compute_dssp:
+        pos_to_dssp = {i: _dssp_data for i,
+                       _dssp_data in enumerate(get_dssp_data(alphafold_path, structure))}
+    if compute_bfactor:
+        pdb_df = PandasPdb().read_pdb(alphafold_path)
+        atom_df = pdb_df.df['ATOM']
+        b_factor = atom_df.groupby("residue_number")[
+            "b_factor"].apply(lambda x: x.median())
+        pos_to_bfactor = {i: _bfactor for i,
+                          _bfactor in enumerate(b_factor.to_list())}
 
-    def add_infos_to_row(row, pdb_id, uniprot_id, pos_to_sasa, pos_to_residue_depth, pos_to_c_alpha_depth):
-        if (row["PDB_wild"] == pdb_id and row["uniprot"] == uniprot_id):
+    def add_infos_to_row(row, alphafold_path, pos_to_sasa,
+                         pos_to_residue_depth, pos_to_c_alpha_depth,
+                         pos_to_dssp, pos_to_bfactor):
+        # we only add infos to the row with the right pdb & uniprot
+        if row["alphafold_path"] == alphafold_path:
             pos = int(row["mutation_position"])
-            row["sasa"] = pos_to_sasa.get(pos, 0.0)
-            row["residue_depth"] = pos_to_residue_depth.get(pos, 0.0)
-            row["c_alpha_depth"] = pos_to_c_alpha_depth.get(pos, 0.0)
+            if pos_to_sasa:
+                row["sasa"] = pos_to_sasa.get(pos, 0.0)
+            if pos_to_residue_depth and pos_to_c_alpha_depth:
+                row["residue_depth"] = pos_to_residue_depth.get(pos, 0.0)
+                row["c_alpha_depth"] = pos_to_c_alpha_depth.get(pos, 0.0)
+            if pos_to_dssp:
+                for k, v in pos_to_dssp.get(pos, {}).items():
+                    row[k] = v
+            if pos_to_bfactor:
+                row["bfactor"] = pos_to_bfactor.get(pos, 0.0)
+
         return row
 
-    df = df.apply(lambda row: add_infos_to_row(row, pdb_id, uniprot_id, pos_to_sasa,
-                                               pos_to_residue_depth, pos_to_c_alpha_depth), axis=1)
+    df = df.apply(lambda row: add_infos_to_row(row, alphafold_path, pos_to_sasa,
+                                               pos_to_residue_depth, pos_to_c_alpha_depth,
+                                               pos_to_dssp, pos_to_bfactor), axis=1)
 
     return df
 
 
-def add_struct_infos(df: pd.DataFrame):
-    # We want to load each struct pdb files only once, therefore we need
+def add_structure_infos(df: pd.DataFrame, compute_sasa=True, compute_depth=True, compute_dssp=True, compute_bfactor=True):
+    # We want to load each structure pdb files only once, therefore we need
     # to go through each protein then each mutation
 
-    for path in tqdm.tqdm(df.alphafold_path.unique()):
+    for alphafold_path in tqdm.tqdm(df.alphafold_path.unique()):
         # 1st we get the corresponding pdb_id
-        # for now we just take the corresponding pdb id in the 1st row with that path
-        pdb_id = df.loc[df.alphafold_path.eq(path)].iloc[0, :]["PDB_wild"]
-        uniprot_id = df.loc[df.alphafold_path.eq(path)].iloc[0, :]["uniprot"]
 
-        # 2nd we add the struct infos for this alphafold path & pdb:
-        df = add_struct_infos_by_pdb(df, pdb_id, uniprot_id, path)
+        # 2nd we add the structure infos for this alphafold path:
+        df = add_structure_infos_by_pdb(df, alphafold_path,
+                                        compute_sasa, compute_depth, compute_dssp, compute_bfactor)
+
+    # if compute_dssp:
+    # translate the Secondary Structure sign (-: None, H: AlphaHelix etc.) to a number
+    df["Secondary structure"] = df["Secondary structure"].apply(lambda x:
+                                                                DSSP_codes_Secondary_Structure[x].get("value"))
 
     return df
 
 
 def add_protein_analysis(df):
-    df["stability_analysis"] = df["protein_sequence"].apply(
+    df["instability_index"] = df["sequence"].apply(
         lambda x: ProteinAnalysis(x).instability_index())
-    df["aromaticity_analysis"] = df["protein_sequence"].apply(
+    df["aromaticity"] = df["sequence"].apply(
         lambda x: ProteinAnalysis(x).aromaticity())
-    df["isoelectric_analysis"] = df["protein_sequence"].apply(
+    df["isoelectric_point"] = df["sequence"].apply(
         lambda x: ProteinAnalysis(x).isoelectric_point())
-    df["charge_analysis"] = df["protein_sequence"].apply(
-        lambda x: ProteinAnalysis(x).charge_at_pH(8.0))
-    df["helix_analysis"] = df["protein_sequence"].apply(
+    df["helix_fraction"] = df["sequence"].apply(
         lambda x: ProteinAnalysis(x).secondary_structure_fraction()[0])
-    df["turn_analysis"] = df["protein_sequence"].apply(
+    df["turn_fraction"] = df["sequence"].apply(
         lambda x: ProteinAnalysis(x).secondary_structure_fraction()[1])
-    df["sheet_analysis"] = df["protein_sequence"].apply(
+    df["sheet_fraction"] = df["sequence"].apply(
         lambda x: ProteinAnalysis(x).secondary_structure_fraction()[2])
-    df["mec_analysis_1"] = df["protein_sequence"].apply(
+    df["molar_extinction_1"] = df["sequence"].apply(
         lambda x: ProteinAnalysis(x).molar_extinction_coefficient()[0])
-    df["mec_analysis_2"] = df["protein_sequence"].apply(
+    df["molar_extinction_2"] = df["sequence"].apply(
         lambda x: ProteinAnalysis(x).molar_extinction_coefficient()[1])
-    df["gravy_analysis"] = df["protein_sequence"].apply(
+    df["gravy"] = df["sequence"].apply(
         lambda x: ProteinAnalysis(x).gravy())
+    df["flexibility"] = df["sequence"].apply(
+        lambda x: sum(ProteinAnalysis(x).flexibility()))
+
+    added_columns = ["charge_at_pH", "delta_molecular_weight", "delta_aromaticity", "delta_isoelectric_point", "delta_helix_fraction",
+                     "delta_turn_fraction", "delta_sheet_fraction", "delta_molar_extinction_1", "delta_molar_extinction_2", "delta_gravy",
+                     "blosum62", "blosum80", "blosum90"]
+    for column in added_columns:
+        df[column] = np.nan
+
+    def add_more_protein_analysis(row):
+        pos = int(row["mutation_position"])
+        sequence = row["sequence"]
+        mutated_sequence = sequence[:pos] + \
+            row["mutated_aa"] + sequence[pos + 1:]
+        wildtype_analysis = ProteinAnalysis(sequence)
+        mutated_analysis = ProteinAnalysis(mutated_sequence)
+
+        pH = row["pH"] if row["pH"] else 7.0
+        row["charge_at_pH"] = wildtype_analysis.charge_at_pH(pH)
+
+        # deltas:
+        row["delta_molecular_weight"] = (
+            wildtype_analysis.molecular_weight()-mutated_analysis.molecular_weight())
+        row["delta_instability_index"] = (wildtype_analysis.instability_index()
+                                          - mutated_analysis.instability_index())
+        row["delta_aromaticity"] = (
+            wildtype_analysis.aromaticity()-mutated_analysis.aromaticity())
+        row["delta_isoelectric_point"] = (
+            wildtype_analysis.isoelectric_point()-mutated_analysis.isoelectric_point())
+        row["delta_helix_fraction"] = (wildtype_analysis.secondary_structure_fraction()[
+            0]-mutated_analysis.secondary_structure_fraction()[0])
+        row["delta_turn_fraction"] = (wildtype_analysis.secondary_structure_fraction()[
+            1]-mutated_analysis.secondary_structure_fraction()[1])
+        row["delta_sheet_fraction"] = (wildtype_analysis.secondary_structure_fraction()[
+            2]-mutated_analysis.secondary_structure_fraction()[2])
+        row["delta_molar_extinction_1"] = (wildtype_analysis.molar_extinction_coefficient()[
+            0]-mutated_analysis.molar_extinction_coefficient()[0])
+        row["delta_molar_extinction_2"] = (wildtype_analysis.molar_extinction_coefficient()[
+            1]-mutated_analysis.molar_extinction_coefficient()[1])
+        row["delta_gravy"] = (wildtype_analysis.gravy() -
+                              mutated_analysis.gravy())
+        row["delta_flexibility"] = (sum(wildtype_analysis.flexibility())
+                                    - sum(mutated_analysis.flexibility()))
+        row["delta_charge_at_pH"] = (wildtype_analysis.charge_at_pH(pH)
+                                     - mutated_analysis.charge_at_pH(pH))
+
+        # add blosum 62, 80 and 90 scores for the mutation
+        mutation = row["mutated_aa"]+row["wild_aa"]
+        row["blosum62"] = BLOSUM(62)[mutation]
+        row["blosum80"] = BLOSUM(80)[mutation]
+        row["blosum90"] = BLOSUM(90)[mutation]
+
+        return row
+
+    df = df.apply(add_more_protein_analysis, axis=1)
 
     return df

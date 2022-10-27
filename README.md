@@ -40,3 +40,8 @@ Some features are computed using msms, see [this link for download](https://ccsb
 
 Some features are computed using DeMaSK, see their [README](https://github.com/Singh-Lab/DeMaSk)
 DeMaSK itself is dependent on [Blastp](https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/) and [UniRef90 in fasta format](https://www.uniprot.org/help/downloads)
+
+Some features are computed using [DSSP](https://swift.cmbi.umcn.nl/gv/dssp/) which stands for Define Secondary Structure of Proteins, it is the standard method for assigning secondary structure to the amino acids of a protein, given the atomic-resolution coordinates of the protein. See the ssbio wiki as well.
+https://biopython.org/docs/1.76/api/Bio.PDB.DSSP.html
+
+Relative SASA is computed using [FreeSASA](https://freesasa.github.io/) and [ssbio wiki page about freesasa](https://ssbio.readthedocs.io/en/latest/instructions/freesasa.html).
