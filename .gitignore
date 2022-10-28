@@ -1,5 +1,7 @@
-data/backup.7z
-data/**/
+data/
+!data/features.json
+!data/sources.csv
+
 __pycache__/
 .ipynb_checkpoints/
 pdb2uniprot/

@@ -113,6 +113,8 @@ def add_structure_infos_by_pdb(df: pd.DataFrame, alphafold_path: str,
         # we only add infos to the row with the right pdb & uniprot
         if row["alphafold_path"] == alphafold_path:
             pos = int(row["mutation_position"])
+            if pos >= int(row["length"]):
+                pos = int(row["length"])-1
             if pos_to_sasa:
                 row["sasa"] = pos_to_sasa.get(pos, 0.0)
             if pos_to_residue_depth and pos_to_c_alpha_depth:
@@ -145,34 +147,40 @@ def add_structure_infos(df: pd.DataFrame, compute_sasa=True, compute_depth=True,
                                         compute_sasa, compute_depth, compute_dssp, compute_bfactor)
 
     if compute_dssp:
-        # translate the Secondary Structure sign (-: None, H: AlphaHelix etc.) to a number
+        # translate the Secondary Structure sign(-: None, H: AlphaHelix etc.) to a number
         df["Secondary structure"] = df["Secondary structure"].apply(lambda x:
-                                                                    DSSP_codes_Secondary_Structure[x].get("value"))
+                                                                    DSSP_codes_Secondary_Structure.get(x, {}).get("value"))
 
     return df
 
 
 def add_protein_analysis(df):
-    df["instability_index"] = df["sequence"].apply(
+    # fill missing pH with 7.0
+    df["pH"] = df["pH"].fillna(7.0)
+    tmp_sequence = df["sequence"].apply(lambda x: x.replace('-', ''))
+
+    df["molWeight"] = tmp_sequence.apply(
+        lambda x: ProteinAnalysis(x).molecular_weight())
+    df["instability_index"] = tmp_sequence.apply(
         lambda x: ProteinAnalysis(x).instability_index())
-    df["aromaticity"] = df["sequence"].apply(
+    df["aromaticity"] = tmp_sequence.apply(
         lambda x: ProteinAnalysis(x).aromaticity())
-    df["isoelectric_point"] = df["sequence"].apply(
+    df["isoelectric_point"] = tmp_sequence.apply(
         lambda x: ProteinAnalysis(x).isoelectric_point())
-    df["helix_fraction"] = df["sequence"].apply(
+    df["helix_fraction"] = tmp_sequence.apply(
         lambda x: ProteinAnalysis(x).secondary_structure_fraction()[0])
-    df["turn_fraction"] = df["sequence"].apply(
+    df["turn_fraction"] = tmp_sequence.apply(
         lambda x: ProteinAnalysis(x).secondary_structure_fraction()[1])
-    df["sheet_fraction"] = df["sequence"].apply(
+    df["sheet_fraction"] = tmp_sequence.apply(
         lambda x: ProteinAnalysis(x).secondary_structure_fraction()[2])
-    df["molar_extinction_1"] = df["sequence"].apply(
+    df["molar_extinction_1"] = tmp_sequence.apply(
         lambda x: ProteinAnalysis(x).molar_extinction_coefficient()[0])
-    df["molar_extinction_2"] = df["sequence"].apply(
+    df["molar_extinction_2"] = tmp_sequence.apply(
         lambda x: ProteinAnalysis(x).molar_extinction_coefficient()[1])
-    df["gravy"] = df["sequence"].apply(
+    df["gravy"] = tmp_sequence.apply(
         lambda x: ProteinAnalysis(x).gravy())
-    df["flexibility"] = df["sequence"].apply(
-        lambda x: sum(ProteinAnalysis(x).flexibility()))
+    df["flexibility"] = tmp_sequence.apply(
+        lambda x: sum(ProteinAnalysis(x).flexibility())/len(x))
 
     added_columns = ["charge_at_pH", "delta_molecular_weight", "delta_aromaticity", "delta_isoelectric_point", "delta_helix_fraction",
                      "delta_turn_fraction", "delta_sheet_fraction", "delta_molar_extinction_1", "delta_molar_extinction_2", "delta_gravy",
@@ -185,6 +193,7 @@ def add_protein_analysis(df):
         sequence = row["sequence"]
         mutated_sequence = sequence[:pos] + \
             row["mutated_aa"] + sequence[pos + 1:]
+        mutated_sequence = mutated_sequence.replace('-', '')
         wildtype_analysis = ProteinAnalysis(sequence)
         mutated_analysis = ProteinAnalysis(mutated_sequence)
 
@@ -218,10 +227,15 @@ def add_protein_analysis(df):
                                      - mutated_analysis.charge_at_pH(pH))
 
         # add blosum 62, 80 and 90 scores for the mutation
-        mutation = row["mutated_aa"]+row["wild_aa"]
-        row["blosum62"] = BLOSUM(62)[mutation]
-        row["blosum80"] = BLOSUM(80)[mutation]
-        row["blosum90"] = BLOSUM(90)[mutation]
+        if row["mutated_aa"] != '-':
+            mutation = row["mutated_aa"]+row["wild_aa"]
+            row["blosum62"] = BLOSUM(62)[mutation]
+            row["blosum80"] = BLOSUM(80)[mutation]
+            row["blosum90"] = BLOSUM(90)[mutation]
+        else:
+            row["blosum62"] = 0.0
+            row["blosum80"] = 0.0
+            row["blosum90"] = 0.0
 
         return row
 
@@ -236,12 +250,21 @@ def add_demask_predictions_by_uniprot(df: pd.DataFrame, uniprot_id: str):
 
     def add_infos(row, uniprot_id):
         if row["uniprot"] == uniprot_id:
+            mutated_aa = str(row["mutated_aa"])
+            if mutated_aa == '-':
+                # this is a deletion mutation, no demask score available
+                return row
+
             # demask index residue starting at 1
             pos = int(row["mutation_position"])+1
-            mutated_aa = str(row["mutated_aa"])
             wild_aa = str(row["wild_aa"])
             prediction = demask_df.loc[demask_df["pos"].eq(
                 pos) & demask_df["WT"].eq(wild_aa) & demask_df["var"].eq(mutated_aa)]
+
+            if len(prediction.index) != 1:
+                print("error: prediction contains more than one element")
+                print("row: ", row)
+                return row
 
             row["demask_score"] = prediction["score"].iloc[0]
             row["demask_entropy"] = prediction["entropy"].iloc[0]

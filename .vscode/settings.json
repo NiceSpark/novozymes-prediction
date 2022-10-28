@@ -1,6 +1,11 @@
 {
-    "python.venvPath": "/home/tom/.local/share/virtualenvs/novozymes-prediction-Gl9CRTFV/bin/python3",
-    "editor.formatOnSave": true,
-    "editor.formatOnType": true,
-    "editor.formatOnPaste": true,
+  "python.venvPath": "/home/tom/.local/share/virtualenvs/novozymes-prediction-Gl9CRTFV/bin/python3",
+  "editor.formatOnSave": true,
+  "editor.formatOnType": true,
+  "editor.formatOnPaste": true,
+  "python.analysis.exclude": [
+    "resources",
+    "pdb2uniprot",
+    "data"
+  ]
 }
