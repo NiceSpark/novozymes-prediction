@@ -3,13 +3,16 @@
         "uniprot",
         "PDB_wild",
         "dataset_source",
-        "alphafold_path"
+        "alphafold_path",
+        "wild_aa",
+        "mutated_aa",
+        "mutated_chain"
     ],
     "basics": [
-        "wild_aa",
+        "wild_aa_int",
+        "mutated_aa_int",
+        "mutated_chain_int",
         "mutation_position",
-        "mutated_aa",
-        "mutated_chain",
         "length",
         "chain_start",
         "chain_end",
