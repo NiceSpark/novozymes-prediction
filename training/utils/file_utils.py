@@ -28,3 +28,9 @@ def write_json(filename, json_file):
 def create_timestamp():
     dateTimeObj = datetime.now()
     return dateTimeObj
+
+
+def save_submission(df):
+    date_time = datetime.now()
+    timestamp = date_time.strftime("%Y-%m-%d_%H-%M-%S")
+    df.to_csv(f"./submissions/submission_{timestamp}.csv", index=False)
