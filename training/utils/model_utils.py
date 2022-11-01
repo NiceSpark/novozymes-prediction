@@ -1,9 +1,7 @@
 import numpy as np
 import pandas as pd
 import random
-import sklearn
 import torch.nn.functional as F
-import torch.nn as nn
 import torch
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import KFold
@@ -57,24 +55,6 @@ class Novozymes_Dataset(torch.utils.data.Dataset):
     def __getitem__(self, i):
         index = self.row_selector.get_index(i)
         return self.X[index], self.y[index]
-
-
-class Novozymes_Model(nn.Module):
-    def __init__(self, num_features: int):
-        super().__init__()
-        self.layers = nn.Sequential(
-            nn.Linear(num_features, 64),
-            nn.ReLU(),
-            nn.Linear(64, 32),
-            nn.ReLU(),
-            nn.Linear(32, 1)
-        )
-
-    def forward(self, x):
-        '''
-        Forward pass
-        '''
-        return self.layers(x)
 
 
 def compute_feature_list(config: dict, features_dict: dict):
@@ -140,7 +120,7 @@ def prepare_train_data(df: pd.DataFrame, config: dict, features: list):
     return dataset
 
 
-def prepare_test_data(df: pd.DataFrame, config: dict, features: list, train_scaler: StandardScaler):
+def prepare_eval_data(df: pd.DataFrame, config: dict, features: list, train_scaler: StandardScaler):
     """
     prepare the dataset for testing only
     """
@@ -163,13 +143,13 @@ def prepare_test_data(df: pd.DataFrame, config: dict, features: list, train_scal
     return X_test, y_test
 
 
-def evaluate_model(X: torch.tensor, y: torch.tensor, model):
+def evaluate_model(X: torch.tensor, y: torch.tensor, model, device):
     """
     evaluate the model
     X and y must be torch tensors
     """
-    y_pred = model(X.float())
-    y_pred = y_pred.detach().numpy()
+    y_pred = model(X.to(device))
+    y_pred = y_pred.cpu().detach().numpy()
     y_pred = np.vstack(y_pred)
 
     y_true = y.numpy()
@@ -180,7 +160,7 @@ def evaluate_model(X: torch.tensor, y: torch.tensor, model):
     return mse
 
 
-def predict(row, model):
+def predict(row, model, device):
     """make a class prediction for one row of data"""
     # convert row to data
     row = torch.tensor([row])
