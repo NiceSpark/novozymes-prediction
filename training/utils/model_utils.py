@@ -128,19 +128,19 @@ def prepare_eval_data(df: pd.DataFrame, config: dict, features: list, train_scal
     target = config["target"]
 
     # 2. create X,y:
-    X_test = df[features]
-    y_test = df[[target]].values.astype(float)
-    X_test = train_scaler.transform(X_test)
+    X_eval = df[features]
+    y_eval = df[[target]].values.astype(float)
+    X_eval = train_scaler.transform(X_eval)
 
-    if (np.isnan(X_test).sum() > 0 or np.isnan(y_test).sum() > 0):
+    if (np.isnan(X_eval).sum() > 0 or np.isnan(y_eval).sum() > 0):
         print(
-            f"ERROR: there are {np.isnan(X_test).sum()} na occurences in the X_test df")
+            f"ERROR: there are {np.isnan(X_eval).sum()} na occurences in the X_eval df")
         print(
-            f"ERROR: there are {np.isnan(y_test).sum()} na occurences in the y_test df")
-    X_test = torch.from_numpy(X_test)
-    y_test = torch.from_numpy(y_test)
+            f"ERROR: there are {np.isnan(y_eval).sum()} na occurences in the y_eval df")
+    X_eval = torch.from_numpy(X_eval)
+    y_eval = torch.from_numpy(y_eval)
 
-    return X_test, y_test
+    return X_eval, y_eval
 
 
 def evaluate_model(X: torch.tensor, y: torch.tensor, model, device):
