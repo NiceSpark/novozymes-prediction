@@ -64,7 +64,9 @@ def correct_mutation_position(wild_aa: str, mutation_position: int, sequence: st
         print(f"{sequence=}")
         return None
 
-    if mutation_position > len(sequence):
+    if sequence == "":
+        return None
+    elif mutation_position > len(sequence):
         # mutation position not coherent with sequence
         return None
     if sequence[mutation_position] == wild_aa:
@@ -90,6 +92,8 @@ def get_uniprot_infos_online(uniprot: str):
     """
     if type(uniprot) != type(""):
         return {}
+    elif uniprot.upper() == "NAN":
+        return {}
 
     try:
         with urllib.request.urlopen(f"https://rest.uniprot.org/uniprotkb/{uniprot}.json") as url:
@@ -97,11 +101,25 @@ def get_uniprot_infos_online(uniprot: str):
     except Exception as e:
         print(f"Exception: {e}")
         print(f"uniprot: {uniprot}, type: {type(uniprot)}")
-        return {}
+        return {
+            "pdbs": "",
+            "sequence": "",
+            "length": 0,
+            "chain_start": 0,
+            "chain_end": 0,
+            "AlphaFoldDB": "",
+        }
 
     # some uniprot entries exists, but without the needed data
     if "sequence" not in data:
-        return {}
+        return {
+            "pdbs": "",
+            "sequence": "",
+            "length": 0,
+            "chain_start": 0,
+            "chain_end": 0,
+            "AlphaFoldDB": "",
+        }
 
     sequence = data.get("sequence", {}).get("value")
     features = data.get("features", [])
@@ -142,9 +160,10 @@ def valid_uniprot(uniprot: str, local_uniprot_infos: dict, wild_aa: str,
         data = get_uniprot_infos_online(uniprot)
         local_uniprot_infos[uniprot] = data
         # validate the data
-        if "sequence" not in data:
+        if "sequence" not in data or data["sequence"] != "":
             errors["no_sequence_in_data"] += 1
             return {}, local_uniprot_infos, None, errors
+
         # index start at 0 => chain start & end -1
         # this means that if one of those is -1 it means there were no data in uniprot DB
         data["chain_start"] -= 1
@@ -179,7 +198,7 @@ def apply_valid_uniprot(row, local_uniprot_infos: dict, dataset_config: dict, er
         row["mutation_position"] = mutation_position
 
     if data != {}:
-        row["infos_found"] = True
+        row["infos_found"] = 1
 
     # we add each data values in the row
     for k, v in data.items():
@@ -229,10 +248,12 @@ def apply_infos_from_pdb(row, local_uniprot_infos: dict, pdb_uniprot_mapping: di
         row["mutation_position"] = mutation_position
 
     if (data != {} and mutation_position is not None):
-        row["infos_found"] = True
+        row["infos_found"] = 1
     else:
         # print(f"no uniprot found for: {pdbs.split(sep)}")
-        pdb_without_uniprot += pdbs.split(sep)
+        for pdb in pdbs.split(sep):
+            if pdb not in pdb_without_uniprot:
+                pdb_without_uniprot.append(pdb)
 
     # we add each data values in the row
     for k, v in data.items():
@@ -276,10 +297,11 @@ def apply_infos_from_sequence(row, local_uniprot_infos: dict, sequence_uniprot_m
         row["mutation_position"] = mutation_position
 
     if (data != {} and mutation_position is not None):
-        row["infos_found"] = True
+        row["infos_found"] = 1
     else:
-        print(f"no uniprot found for: {sequence}")
-        sequence_without_uniprot.append(sequence)
+        # print(f"no uniprot found for: {sequence}")
+        if sequence not in sequence_without_uniprot:
+            sequence_without_uniprot.append(sequence)
 
     # we add each data values in the row
     for k, v in data.items():
