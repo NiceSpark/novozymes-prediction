@@ -10,6 +10,7 @@ resources/msms
 resources/DeMaSk
 resources/ncbi-blast*
 resources/freesasa*
+test.ipynb
 DeMaSk/
 stderr.log
 stdout.log
