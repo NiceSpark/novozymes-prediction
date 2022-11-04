@@ -248,6 +248,7 @@ def apply_infos_from_pdb(row, local_uniprot_infos: dict, pdb_uniprot_mapping: di
         row["mutation_position"] = mutation_position
 
     if (data != {} and mutation_position is not None):
+        row["uniprot"] = uniprot
         row["infos_found"] = 1
     else:
         # print(f"no uniprot found for: {pdbs.split(sep)}")
@@ -298,6 +299,7 @@ def apply_infos_from_sequence(row, local_uniprot_infos: dict, sequence_uniprot_m
         row["mutation_position"] = mutation_position
 
     if (data != {} and mutation_position is not None):
+        row["uniprot"] = uniprot
         row["infos_found"] = 1
     else:
         # print(f"no uniprot found for: {sequence}")
