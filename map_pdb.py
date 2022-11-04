@@ -4,7 +4,7 @@ from utils.file_utils import open_json, write_json
 pdb_no_uniprot = open_json(
     "./data/main_dataset_creation/mapping/pdb_no_uniprot.json")
 pdb_uniprot_mapping2 = open_json(
-    "./data/main_dataset_creation/mapping/pdb_uniprot_mapping_2.json")
+    "./data/main_dataset_creation/mapping/pdb_uniprot_mapping_searched_in_db.json")
 
 
 def add_pdb_to_mapping(uniprot: str, pdb: str, pdb_uniprot_mapping: dict):
@@ -26,4 +26,4 @@ with open("/media/tom/ML_WORK/uniprot_id_mapping/idmapping.dat") as fp:
                     uniprot, pdb, pdb_uniprot_mapping2)
 
 write_json(
-    "./data/main_dataset_creation/mapping/pdb_uniprot_mapping_2.json", pdb_uniprot_mapping2)
+    "./data/main_dataset_creation/mapping/pdb_uniprot_mapping_searched_in_db.json", pdb_uniprot_mapping2)

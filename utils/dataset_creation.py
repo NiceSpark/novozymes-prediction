@@ -231,7 +231,7 @@ def apply_infos_from_pdb(row, local_uniprot_infos: dict, pdb_uniprot_mapping: di
             # as soon as we found at least one coherent data we exit the loop
             break
 
-        mapped_uniprots = pdb_uniprot_mapping.get(pdb, [])
+        mapped_uniprots = pdb_uniprot_mapping.get(pdb.upper(), [])
         for uniprot in mapped_uniprots:
             # we get the first valid infos
             # TODO: maybe we can do better than just taking the first one ?
@@ -252,7 +252,8 @@ def apply_infos_from_pdb(row, local_uniprot_infos: dict, pdb_uniprot_mapping: di
     else:
         # print(f"no uniprot found for: {pdbs.split(sep)}")
         for pdb in pdbs.split(sep):
-            if pdb not in pdb_without_uniprot:
+            pdb = pdb.upper()
+            if (pdb not in pdb_uniprot_mapping) and (pdb not in pdb_without_uniprot):
                 pdb_without_uniprot.append(pdb)
 
     # we add each data values in the row
