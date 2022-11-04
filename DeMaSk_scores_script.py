@@ -5,9 +5,9 @@ import os
 # This script is to be used on the distant machine
 # path is therefor relative (put this script in DeMaSk_outputs/)
 
-fasta_dir = "./fasta"
-homologs_dir = "./homologs"
-predictions_dir = "./predictions"
+fasta_dir = "./data/main_dataset_creation/DeMaSk_outputs/fasta"
+homologs_dir = "./data/main_dataset_creation/DeMaSk_outputs/homologs"
+predictions_dir = "./data/main_dataset_creation/DeMaSk_outputs/predictions"
 
 fasta_files = glob.glob(fasta_dir+"/*.fa")
 homologs_files = glob.glob(homologs_dir+"/*.a2m")

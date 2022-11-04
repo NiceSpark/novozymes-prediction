@@ -1,9 +1,8 @@
 import numpy as np
 import pandas as pd
 import random
-import torch.nn.functional as F
 import torch
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, PolynomialFeatures
 from sklearn.model_selection import KFold
 from sklearn.metrics import mean_squared_error
 
@@ -94,6 +93,43 @@ def split_dataset(df: pd.DataFrame, config):
     return df, kfold.split(df["protein_index"].unique())
 
 
+def PolynomialFeatures_labeled(input_df, power):
+    '''Basically this is a cover for the sklearn preprocessing function. 
+    The problem with that function is if you give it a labeled dataframe, it ouputs an unlabeled dataframe with potentially
+    a whole bunch of unlabeled columns. 
+    Inputs:
+    input_df = Your labeled pandas dataframe (list of x's not raised to any power) 
+    power = what order polynomial you want variables up to. (use the same power as you want entered into pp.PolynomialFeatures(power) directly)
+    Ouput:
+    Output: This function relies on the powers_ matrix which is one of the preprocessing function's outputs to create logical labels and 
+    outputs a labeled pandas dataframe   
+    '''
+    poly = PolynomialFeatures(power)
+    output_nparray = poly.fit_transform(input_df)
+    powers_nparray = poly.powers_
+
+    input_feature_names = list(input_df.columns)
+    target_feature_names = ["Constant Term"]
+    for feature_distillation in powers_nparray[1:]:
+        intermediary_label = ""
+        final_label = ""
+        for i in range(len(input_feature_names)):
+            if feature_distillation[i] == 0:
+                continue
+            else:
+                variable = input_feature_names[i]
+                power = feature_distillation[i]
+                intermediary_label = "%s^%d" % (variable, power)
+                if final_label == "":  # If the final label isn't yet specified
+                    final_label = intermediary_label
+                else:
+                    final_label = final_label + " x " + intermediary_label
+        target_feature_names.append(final_label)
+    output_df = pd.DataFrame(output_nparray, columns=target_feature_names)
+    output_df.drop(columns=["Constant Term"], inplace=True)
+    return output_df
+
+
 def prepare_train_data(df: pd.DataFrame, config: dict, features: list):
     """
     prepare the dataset
@@ -103,7 +139,8 @@ def prepare_train_data(df: pd.DataFrame, config: dict, features: list):
     target = config["target"]
 
     # 2. create X,y:
-    X_train = df[features]
+    X_train = PolynomialFeatures_labeled(
+        df[features], config["polynomial_features_power"])
     y_train = df[[target]].values.astype(float)
 
     if (X_train.isna().sum().sum() > 0 or np.isnan(y_train).sum() > 0):
@@ -128,7 +165,9 @@ def prepare_eval_data(df: pd.DataFrame, config: dict, features: list, train_scal
     target = config["target"]
 
     # 2. create X,y:
-    X_eval = df[features]
+    X_eval = PolynomialFeatures_labeled(
+        df[features], config["polynomial_features_power"])
+
     y_eval = df[[target]].values.astype(float)
     X_eval = train_scaler.transform(X_eval)
 
@@ -141,6 +180,31 @@ def prepare_eval_data(df: pd.DataFrame, config: dict, features: list, train_scal
     y_eval = torch.from_numpy(y_eval)
 
     return X_eval, y_eval
+
+
+def prepare_xgboost(df, config, features, train_scaler=StandardScaler, fit_scaler=False):
+    """
+    prepare the dataset for testing only
+    """
+    # 1. get the target
+    target = config["target"]
+
+    # 2. create X,y:
+    X = PolynomialFeatures_labeled(
+        df[features], config["polynomial_features_power"])
+
+    y = df[[target]].values.astype(float)
+    if fit_scaler:
+        train_scaler.fit(X)
+    X = train_scaler.transform(X)
+
+    if (np.isnan(X).sum() > 0 or np.isnan(y).sum() > 0):
+        print(
+            f"ERROR: there are {np.isnan(X).sum()} na occurences in the X df")
+        print(
+            f"ERROR: there are {np.isnan(y).sum()} na occurences in the y df")
+
+    return X, y
 
 
 def evaluate_model(X: torch.tensor, y: torch.tensor, model, device):
