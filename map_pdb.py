@@ -22,8 +22,10 @@ with open("/media/tom/ML_WORK/uniprot_id_mapping/idmapping.dat") as fp:
             uniprot = values[0]
             pdb = values[2].strip()
             if pdb in pdb_no_uniprot:
+                print(f"found a match: {uniprot=}, {pdb=}")
                 pdb_uniprot_mapping2 = add_pdb_to_mapping(
                     uniprot, pdb, pdb_uniprot_mapping2)
 
+print(f"{pdb_uniprot_mapping2=}")
 write_json(
     "./data/main_dataset_creation/mapping/pdb_uniprot_mapping_searched_in_db.json", pdb_uniprot_mapping2)
