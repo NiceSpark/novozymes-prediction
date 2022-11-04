@@ -11,4 +11,8 @@ Ssym+,https://academic.oup.com/bib/article/23/2/bbab555/6502552#supplementary-da
 ThermoMutDB,http://biosig.unimelb.edu.au/thermomutdb/downloads
 Kaggle_DDGUN_dataset,https://www.kaggle.com/datasets/ropeonmars/new-files-with-getarea-output-and-ddlg
 Kaggle_DDGUN_ddg,https://www.kaggle.com/datasets/ropeonmars/new-ddg-pdb-files
-
+site_directed_mutator,http://marid.bioc.cam.ac.uk/sdm2/data
+istable2, http://ncblab.nchu.edu.tw/iStable2/data.html
+S1626,https://aip.scitation.org/doi/suppl/10.1063/1.4947493
+Thermonet,https://github.com/gersteinlab/ThermoNet/tree/master/data/datasets
+Kaggle__all_train_v17, https://www.kaggle.com/code/cdeotte/xgboost-5000-mutations-200-pdb-files-lb-0-410/data?scriptVersionId=109217209&select=all_train_data_v17.csv
