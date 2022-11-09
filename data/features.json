@@ -1,12 +1,10 @@
 {
     "identification": [
         "uniprot",
-        "PDB_wild",
         "dataset_source",
         "alphafold_path",
         "wild_aa",
-        "mutated_aa",
-        "mutated_chain"
+        "mutated_aa"
     ],
     "basics": [
         "wild_aa_int",

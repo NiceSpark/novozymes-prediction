@@ -12,7 +12,6 @@ resources/ncbi-blast*
 resources/freesasa*
 resources/rosetta*
 DeMaSk/
-stderr.log
-stdout.log
+test.ipynb
 compute_mutated_structures/compute_relaxed_logs/*
 compute_mutated_structures/relaxed_pdb/*
