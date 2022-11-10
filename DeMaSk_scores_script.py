@@ -17,7 +17,7 @@ print(f"found {len(homologs_files)} homologs_files")
 print(f"found {len(predictions_files)} predictions_files")
 
 # create homologs files
-for fasta_path in tqdm.tqdm(fasta_files):
+for fasta_path in fasta_files:
     uniprot, _ = os.path.splitext(fasta_path.split('/')[-1])
     homologs_path = f"{homologs_dir}/{uniprot}.a2m"
     # check that homologs_path does not exist yet:
@@ -26,8 +26,8 @@ for fasta_path in tqdm.tqdm(fasta_files):
         continue
 
     cmd = f"python3 -m demask.homologs -s {fasta_path} -o {homologs_path}"
+    print(f"computing {homologs_path}")
     os.system(cmd)
-
 
 # create prediction files
 homologs_files = glob.glob(homologs_dir+"/*.a2m")
