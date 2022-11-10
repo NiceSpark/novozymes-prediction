@@ -245,7 +245,7 @@ def add_protein_analysis(df):
 
 
 def add_demask_predictions_by_uniprot(df: pd.DataFrame, uniprot_id: str):
-    prediction_path = f"./data/main_dataset/DeMaSk_outputs/predictions/{uniprot_id}.txt"
+    prediction_path = f"./data/main_dataset_creation/DeMaSk_outputs/predictions/{uniprot_id}.txt"
     demask_df = pd.read_csv(prediction_path, sep='\t')
 
     def add_infos(row, uniprot_id):
