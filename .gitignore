@@ -13,5 +13,8 @@ resources/freesasa*
 resources/rosetta*
 DeMaSk/
 test.ipynb
-compute_mutated_structures/compute_relaxed_logs/*
+compute_mutated_structures/relaxed_logs/*
 compute_mutated_structures/relaxed_pdb/*
+compute_mutated_structures/mutations/*
+stderr.log
+stdout.log
