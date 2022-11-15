@@ -16,5 +16,9 @@ test.ipynb
 compute_mutated_structures/relaxed_logs/*
 compute_mutated_structures/relaxed_pdb/*
 compute_mutated_structures/mutations/*
+compute_mutated_structures/mutations_logs/*
+compute_mutated_structures/mutations*.sh
+compute_mutated_structures/main_mutations*.sh
+compute_mutated_structures/*.log
 stderr.log
 stdout.log
