@@ -10,6 +10,7 @@ resources/msms
 resources/DeMaSk
 resources/ncbi-blast*
 resources/freesasa*
+resources/PyRosetta
 resources/rosetta*
 DeMaSk/
 test.ipynb
@@ -22,3 +23,6 @@ compute_mutated_structures/main_mutations*.sh
 compute_mutated_structures/*.log
 stderr.log
 stdout.log
+**/*.pdb
+**/*.sc
+**/*.log
