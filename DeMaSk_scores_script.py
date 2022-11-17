@@ -1,7 +1,9 @@
 import glob
 import tqdm
 import os
+from multiprocessing import Pool
 
+pool = Pool(os.cpu_count())
 # This script is to be used on the distant machine
 # path is therefor relative (put this script in DeMaSk_outputs/)
 
