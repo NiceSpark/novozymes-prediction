@@ -40,3 +40,4 @@ aa_tri2long = {v: k for k, v in aa_long2tri.items()}
 aa_char2long = {v: k for k, v in aa_long2char.items()}
 aa_char2int = {_aa: i for i, _aa in enumerate(aa_chars_ordered)}
 aa_int2char = {v: k for k, v in aa_char2int.items()}
+aa_tri2char = {aa_long2tri[k].upper(): v for k, v in aa_long2char.items()}
