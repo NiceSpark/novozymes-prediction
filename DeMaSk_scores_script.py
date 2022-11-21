@@ -1,7 +1,6 @@
 import glob
 import tqdm
 import os
-
 # This script is to be used on the distant machine
 # path is therefor relative (put this script in DeMaSk_outputs/)
 
