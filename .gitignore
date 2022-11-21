@@ -29,3 +29,4 @@ stdout.log
 **/*.pdb
 **/*.sc
 **/*.log
+.vscode/
