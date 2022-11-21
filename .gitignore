@@ -16,6 +16,7 @@ resources/ThermoNet/
 DeMaSk/
 test.ipynb
 compute_mutated_structures/relaxed_logs/*
+compute_mutated_structures/test_pdb/
 compute_mutated_structures/relaxed_pdb/*
 compute_mutated_structures/mutations/*
 compute_mutated_structures/mutations_logs/*
