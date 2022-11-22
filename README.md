@@ -45,3 +45,5 @@ Some features are computed using [DSSP](https://swift.cmbi.umcn.nl/gv/dssp/) whi
 https://biopython.org/docs/1.76/api/Bio.PDB.DSSP.html
 
 Relative SASA is computed using [FreeSASA](https://freesasa.github.io/) and [ssbio wiki page about freesasa](https://ssbio.readthedocs.io/en/latest/instructions/freesasa.html).
+
+Residue Depth is computed using [MSMS](https://ccsb.scripps.edu/msms/) see [ssbio on how to install msms](https://ssbio.readthedocs.io/en/latest/instructions/msms.html)
