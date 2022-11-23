@@ -19,8 +19,8 @@ BLOSUM100 = BLOSUM(
     "/home/ml/novozymes-prediction/data/main_dataset_creation/blosum/blosum100.mat")
 
 DSSP_Data_Keys = [
-    "DSSP index",
-    "Amino acid",
+    "DSSP_index",
+    "Amino_acid",
     "Secondary_structure",
     "Relative_ASA",
     "Phi",
@@ -69,9 +69,9 @@ def get_sasa(structure, sr_n_points=250):
     return [x.sasa for x in structure.get_residues()]
 
 
-def get_dssp_data(alphafold_path: str, structure):
+def get_dssp_data(structure_path: str, structure):
     model = structure[0]
-    dssp = DSSP(model, alphafold_path)
+    dssp = DSSP(model, structure_path)
 
     # result is a list containing len(sequence) elements
     # each elements contain the DSSP data (Secondary Structure, RSA, etc.) for each residue
@@ -173,7 +173,7 @@ def add_structure_infos_by_mutation(mutations_df: pd.DataFrame,
         w_aa, m_aa = row["wild_aa"], row["mutated_aa"]
         relaxed_pos = int(row["mutation_position"])+1
         name, _ = os.path.splitext(row["alphafold_path"].split("/")[-1])
-        mutated_structure_path = (f"./compute_mutated_structures/relaxed_pdb/{name}_relaxed/" +
+        mutated_structure_path = (f"/mnt/disks/media/compute_mutated_structures/relaxed_pdb/{name}_relaxed/" +
                                   f"{name}_relaxed_{w_aa}{relaxed_pos}{m_aa}_relaxed.pdb")
         infos = get_structure_infos(
             mutated_structure_path, compute_sasa, compute_depth, compute_dssp, compute_bfactor)
@@ -241,7 +241,7 @@ def add_structure_infos(df: pd.DataFrame, compute_sasa=True, compute_depth=True,
 
     for alphafold_path in df.alphafold_path.unique():
         name, _ = os.path.splitext(alphafold_path.split("/")[-1])
-        wild_relaxed_path = f"./compute_mutated_structures/relaxed_pdb/{name}_relaxed/{name}_relaxed.pdb"
+        wild_relaxed_path = f"/mnt/disks/media/compute_mutated_structures/relaxed_pdb/{name}_relaxed/{name}_relaxed.pdb"
         df = add_structure_infos_by_protein(df, alphafold_path, "alphafold",
                                             compute_sasa, compute_depth, compute_dssp, compute_bfactor)
         df = add_structure_infos_by_protein(df, wild_relaxed_path, "wild_relaxed",

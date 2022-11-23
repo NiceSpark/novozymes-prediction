@@ -14,14 +14,14 @@ from utils.demask_features import add_demask_predictions
 from utils.file_utils import open_json
 from utils.infos_translation import aa_char2int
 
-THREADS = 12
+THREADS = 4
 
 ADD_STRUCTURE_INFOS = True
-ADD_DEMASK_PREDICTIONS = True
-ADD_PROTEIN_ANALYSIS = True
+ADD_DEMASK_PREDICTIONS = False
+ADD_PROTEIN_ANALYSIS = False
 ONLY_DDG = True
 SAVE_NEW_CSV = True
-CONVERT_MUTATION_TO_INT = True
+CONVERT_MUTATION_TO_INT = False
 CLEAN_DF = True
 START_FRESH = True
 DROP_COLUMNS = False
@@ -35,6 +35,7 @@ DATASET_OUTPUT_PATH = DATASET_DIR+"dataset_with_all_features.csv"
 
 if START_FRESH:
     df = pd.read_csv(DATASET_INPUT_PATH)
+    df = df.iloc[:12].copy()
 else:
     df = pd.read_csv(DATASET_OUTPUT_PATH)
 
