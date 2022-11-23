@@ -20,6 +20,9 @@ ssbio = "*"
 freesasa = "*"
 blosum = "*"
 pyrosettacolabsetup = "*"
+torch = "*"
+torchvision = "*"
+torchaudio = "*"
 
 [dev-packages]
 ipykernel = "*"
