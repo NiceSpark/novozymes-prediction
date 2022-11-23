@@ -12,6 +12,8 @@ resources/ncbi-blast*
 resources/freesasa*
 resources/PyRosetta
 resources/rosetta*
+resources/*.tar
+resources/*.tar.gz
 resources/ThermoNet/
 DeMaSk/
 test.ipynb
