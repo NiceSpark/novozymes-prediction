@@ -285,9 +285,11 @@ def add_structure_infos(df: pd.DataFrame, compute_sasa=True, compute_depth=True,
 
 def add_protein_analysis(df, multiprocessing=False):
     if not multiprocessing:
-        new_columns = ["charge_at_pH", "mutation_molecular_weight", "mutation_aromaticity", "mutation_isoelectric_point", "mutation_helix_fraction",
-                       "mutation_turn_fraction", "mutation_sheet_fraction", "mutation_molar_extinction_1", "mutation_molar_extinction_2", "mutation_gravy",
-                       "blosum62", "blosum80", "blosum90"]
+        new_columns = ["charge_at_pH", "flexibility", "gravy", "molar_extinction_2", "molar_extinction_1", "sheet_fraction",
+                       "turn_fraction", "helix_fraction", "isoelectric_point", "aromaticity", "instability_index", "molecular_weight"]
+        new_columns += ["mutation_molecular_weight", "mutation_aromaticity", "mutation_isoelectric_point", "mutation_helix_fraction",
+                        "mutation_turn_fraction", "mutation_sheet_fraction", "mutation_molar_extinction_1", "mutation_molar_extinction_2", "mutation_gravy",
+                        "blosum62", "blosum80", "blosum90", "blosum100"]
         for column in new_columns:
             df[column] = np.nan
 
@@ -354,27 +356,20 @@ def add_protein_analysis(df, multiprocessing=False):
         row["mutation_charge_at_pH"] = (mutated_analysis.charge_at_pH(pH)
                                         - wildtype_analysis.charge_at_pH(pH))
 
-        # add blosum 62, 80 and 90 scores for the mutation
+        # add blosum 62, 80, 90 and 100 scores for the mutation
+        # NB: blosum scores give an idea of how 2 amino acid are "close" or not, therefore it is symmetric
+        # ie. no need for direct and indirect blosum scores
         if row["mutated_aa"] != '-':
-            direct_mutation = row["wild_aa"]+row["mutated_aa"]
-            indirect_mutation = row["mutated_aa"]+row["wild_aa"]
-            row["direct_blosum62"] = BLOSUM(62)[direct_mutation]
-            row["direct_blosum80"] = BLOSUM(80)[direct_mutation]
-            row["direct_blosum90"] = BLOSUM(90)[direct_mutation]
-            row["direct_blosum100"] = BLOSUM100[direct_mutation]
-            row["indirect_blosum62"] = BLOSUM(62)[indirect_mutation]
-            row["indirect_blosum80"] = BLOSUM(80)[indirect_mutation]
-            row["indirect_blosum90"] = BLOSUM(90)[indirect_mutation]
-            row["indirect_blosum100"] = BLOSUM100[indirect_mutation]
+            mutation = row["wild_aa"]+row["mutated_aa"]
+            row["blosum62"] = BLOSUM(62)[mutation]
+            row["blosum80"] = BLOSUM(80)[mutation]
+            row["blosum90"] = BLOSUM(90)[mutation]
+            row["blosum100"] = BLOSUM100[mutation]
         else:
-            row["direct_blosum62"] = 0.0
-            row["direct_blosum80"] = 0.0
-            row["direct_blosum90"] = 0.0
-            row["direct_blosum100"] = 0.0
-            row["indirect_blosum62"] = 0.0
-            row["indirect_blosum80"] = 0.0
-            row["indirect_blosum90"] = 0.0
-            row["indirect_blosum100"] = 0.0
+            row["blosum62"] = 0.0
+            row["blosum80"] = 0.0
+            row["blosum90"] = 0.0
+            row["blosum100"] = 0.0
         return row
 
     df = df.apply(add_more_protein_analysis, axis=1)
