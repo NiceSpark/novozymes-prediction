@@ -2,6 +2,7 @@ data/
 !data/features.json
 !data/sources.csv
 
+wandb/
 __pycache__/
 .ipynb_checkpoints/
 pdb2uniprot/
@@ -12,6 +13,8 @@ resources/ncbi-blast*
 resources/freesasa*
 resources/PyRosetta
 resources/rosetta*
+resources/*.tar
+resources/*.tar.gz
 resources/ThermoNet/
 resources/msms*
 DeMaSk/

@@ -1,0 +1,148 @@
+{
+    "dataset_dir": "../data/main_dataset_creation/outputs/all_v3",
+    "dataset_name": "dataset_with_all_features",
+    "use_cuda": false,
+    "num_epochs": 30,
+    "batch_size": 256,
+    "model_config": {
+        "nn_linear_parameters": 128,
+        "num_hidden_layers": 4,
+        "with_final_half_layer": true,
+        "with_relu": true
+    },
+    "num_workers": 12,
+    "max_protein_length": 600,
+    "shuffle_dataloader": true,
+    "reverse_probability": 0,
+    "min_mutations_per_protein": 0,
+    "target": "ddG",
+    "k-fold": 5,
+    "select_by_protein": false,
+    "polynomial_features_power": 1,
+    "num_worst_samples": 10,
+    "hyperparameters": {
+        "k-fold": [],
+        "batch_size": [],
+        "num_epochs": [],
+        "reverse": [],
+        "hidden_layer_num_parameters": [],
+        "dataset_selection": [],
+        "alphafold_and_mutation": [],
+        "max_protein_length": []
+    },
+    "bad_uniprot": [
+        "P02751",
+        "P07445",
+        "O61594",
+        "P00974",
+        "Q9H334",
+        "P0AA25",
+        "P24821"
+    ],
+    "features_config": {
+        "identification": {
+            "use": false,
+            "category": "global"
+        },
+        "basics": {
+            "use": true,
+            "category": "global"
+        },
+        "blosum": {
+            "use": true,
+            "category": "global"
+        },
+        "direct_demask": {
+            "use": true,
+            "category": "direct"
+        },
+        "indirect_demask": {
+            "use": true,
+            "category": "indirect"
+        },
+        "wild_protein_analysis": {
+            "use": false,
+            "category": "direct"
+        },
+        "mutated_protein_analysis": {
+            "use": false,
+            "category": "indirect"
+        },
+        "mutation_protein_analysis": {
+            "use": true,
+            "category": "delta"
+        },
+        "alphafold_3D_structure_analysis": {
+            "use": true,
+            "category": "global"
+        },
+        "wild_relaxed_3D_structure_analysis": {
+            "use": false,
+            "category": "direct"
+        },
+        "mutated_relaxed_3D_structure_analysis": {
+            "use": false,
+            "category": "indirect"
+        },
+        "mutation_3D_structure_analysis": {
+            "use": true,
+            "category": "delta"
+        },
+        "alphafold_dssp_3D_analysis": {
+            "use": true,
+            "category": "global"
+        },
+        "wild_relaxed_dssp_3D_analysis": {
+            "use": false,
+            "category": "direct"
+        },
+        "mutated_relaxed_dssp_3D_analysis": {
+            "use": false,
+            "category": "indirect"
+        },
+        "mutation_dssp_3D_analysis": {
+            "use": true,
+            "category": "delta"
+        },
+        "esm_pca_pool": {
+            "use": true,
+            "category": "global"
+        },
+        "esm_pca_wild": {
+            "use": false,
+            "category": "direct"
+        },
+        "esm_pca_mutant": {
+            "use": false,
+            "category": "indirect"
+        },
+        "esm_pca_local": {
+            "use": true,
+            "category": "delta"
+        },
+        "esm_global": {
+            "use": true,
+            "category": "global"
+        },
+        "alphafold_rosetta_scores": {
+            "use": false,
+            "category": "global"
+        },
+        "wild_relaxed_rosetta_scores": {
+            "use": false,
+            "category": "direct"
+        },
+        "mutated_relaxed_rosetta_scores": {
+            "use": false,
+            "category": "indirect"
+        },
+        "mutation_rosetta_scores": {
+            "use": true,
+            "category": "delta"
+        },
+        "target": {
+            "use": false,
+            "category": "global"
+        }
+    }
+}

@@ -5,6 +5,7 @@ import torch
 from sklearn.preprocessing import StandardScaler, PolynomialFeatures
 from sklearn.model_selection import KFold
 from sklearn.metrics import mean_squared_error
+from torch.utils.data import Dataset
 
 
 class Row_Selector():
@@ -33,37 +34,93 @@ class Row_Selector():
             return i
 
 
-class Novozymes_Dataset(torch.utils.data.Dataset):
-    '''
+class Novozymes_Dataset(Dataset):
+    """
     Prepare the Novozymes dataset for regression
-    '''
+    we can give it a reverse_mutation_probability:
+    => probability of giving the reverse mutation, not the direct one
+    ie. mutated -> wild instead of wild-> mutated
+    """
 
-    def __init__(self, X: pd.DataFrame, y: pd.DataFrame, row_selector: Row_Selector, scale_data=True):
+    def __init__(self, X: pd.DataFrame, y: pd.DataFrame, row_selector: Row_Selector,
+                 features_infos: dict, reverse_probability: float, scale_data=True):
+
         self.scaler = StandardScaler()
         if not torch.is_tensor(X) and not torch.is_tensor(y):
             # Apply scaling if necessary
             if scale_data:
                 X = self.scaler.fit_transform(X)
-            self.X = torch.from_numpy(X)
-            self.y = torch.from_numpy(y)
+            self.X = X
+            self.y = y
             self.row_selector = row_selector
+
+            self.reverse_probability = reverse_probability
+            self.reverse_coef = features_infos["reverse_coef"]
+            self.direct_features = features_infos["direct_features"]
+            self.indirect_features = features_infos["indirect_features"]
 
     def __len__(self):
         return len(self.X)
 
     def __getitem__(self, i):
         index = self.row_selector.get_index(i)
-        return self.X[index], self.y[index]
+
+        if random.random() > self.reverse_probability:
+            # direct mutation
+            x_data = self.X[index][self.direct_features]
+            y_data = self.y[index]
+        else:
+            # indirect mutation, we need to reverse the delta features
+            all_features = self.X[index]
+            reverse = np.multiply(all_features, np.array(self.reverse_coef))
+            x_data = reverse[self.indirect_features]
+            # we also reverse the target
+            y_data = -1*self.y[index]
+
+        x_data = torch.from_numpy(x_data)
+        y_data = torch.from_numpy(y_data)
+
+        return x_data, y_data
 
 
 def compute_feature_list(config: dict, features_dict: dict):
     # compute feature list
-    use_features = config["use_features"]
+    features_config = config["features_config"]
+    reverse_coef = []
+    direct_features = []
+    indirect_features = []
 
-    features = [features_dict[key]
-                for key in features_dict if use_features[key]]
-    features = sum(features, [])  # flatten the list of columns
-    return features
+    features = []
+    index = 0
+
+    for key, features_sublist in features_dict.items():
+        if features_config[key].get("use"):
+            for feature in features_sublist:
+                category = features_config[key].get("category")
+                if category == "global":
+                    reverse_coef.append(1)
+                    direct_features.append(index)
+                    indirect_features.append(index)
+                elif category == "direct":
+                    reverse_coef.append(1)
+                    direct_features.append(index)
+                elif category == "indirect":
+                    reverse_coef.append(1)
+                    indirect_features.append(index)
+                if category == "delta":
+                    reverse_coef.append(-1)
+                    direct_features.append(index)
+                    indirect_features.append(index)
+                features.append(feature)
+                index += 1
+
+    features_infos = {
+        "reverse_coef": reverse_coef,
+        "direct_features": direct_features,
+        "indirect_features": indirect_features,
+    }
+
+    return features, features_infos
 
 
 def split_dataset(df: pd.DataFrame, config):
@@ -87,23 +144,28 @@ def split_dataset(df: pd.DataFrame, config):
     not_enough_mutations = (
         df["protein_index"].value_counts() < min_mutations_per_protein)
     # remove the proteins with not enough mutations
-    df = df[~df["protein_index"].apply(lambda x: not_enough_mutations[x])]
+    df = df[~(df["protein_index"].apply(lambda x: not_enough_mutations[x]))]
     # do the k-fold on the protein index:
 
     return df, kfold.split(df["protein_index"].unique())
 
 
 def PolynomialFeatures_labeled(input_df, power):
-    '''Basically this is a cover for the sklearn preprocessing function. 
+    '''Basically this is a cover for the sklearn preprocessing function.
     The problem with that function is if you give it a labeled dataframe, it ouputs an unlabeled dataframe with potentially
-    a whole bunch of unlabeled columns. 
+    a whole bunch of unlabeled columns.
     Inputs:
-    input_df = Your labeled pandas dataframe (list of x's not raised to any power) 
+    input_df = Your labeled pandas dataframe (list of x's not raised to any power)
     power = what order polynomial you want variables up to. (use the same power as you want entered into pp.PolynomialFeatures(power) directly)
-    Ouput:
-    Output: This function relies on the powers_ matrix which is one of the preprocessing function's outputs to create logical labels and 
-    outputs a labeled pandas dataframe   
+    if power == 1, simply return input_df unchanged
+
+    Output: This function relies on the powers_ matrix which is one of the preprocessing function's outputs to create logical labels and
+    outputs a labeled pandas dataframe
     '''
+
+    if power == 1:
+        return input_df
+
     poly = PolynomialFeatures(power)
     output_nparray = poly.fit_transform(input_df)
     powers_nparray = poly.powers_
@@ -130,7 +192,8 @@ def PolynomialFeatures_labeled(input_df, power):
     return output_df
 
 
-def prepare_train_data(df: pd.DataFrame, config: dict, features: list):
+def prepare_train_data(df: pd.DataFrame, config: dict,
+                       features: list, features_infos: dict):
     """
     prepare the dataset
     NB: We do not split the data into train/test here, see split_dataset function
@@ -152,12 +215,13 @@ def prepare_train_data(df: pd.DataFrame, config: dict, features: list):
     # 3. create the row_selector object
     row_selector = Row_Selector(df, config["select_by_protein"])
     # 4. load the dataset
-    dataset = Novozymes_Dataset(X_train, y_train, row_selector)
+    dataset = Novozymes_Dataset(X_train, y_train, row_selector,
+                                features_infos, reverse_probability=config["reverse_probability"])
 
     return dataset
 
 
-def prepare_eval_data(df: pd.DataFrame, config: dict, features: list, train_scaler: StandardScaler):
+def prepare_eval_data(df: pd.DataFrame, config: dict, features: list, features_infos: dict, train_scaler: StandardScaler):
     """
     prepare the dataset for testing only
     """
@@ -177,6 +241,7 @@ def prepare_eval_data(df: pd.DataFrame, config: dict, features: list, train_scal
         print(
             f"ERROR: there are {np.isnan(y_eval).sum()} na occurences in the y_eval df")
     X_eval = torch.from_numpy(X_eval)
+    X_eval = X_eval[:, features_infos["direct_features"]]
     y_eval = torch.from_numpy(y_eval)
 
     return X_eval, y_eval
@@ -221,7 +286,20 @@ def evaluate_model(X: torch.tensor, y: torch.tensor, model, device):
 
     # compute MSE
     mse = mean_squared_error(y_true, y_pred)
-    return mse
+
+    # compute worst results
+    diff = np.abs(np.diff(np.array([y_true, y_pred]), axis=0))[0]
+
+    return mse, diff
+
+
+def get_worst_samples(df_test, test_diff, config):
+    uniprot_df_test = df_test[["uniprot", "wild_aa",
+                              "mutation_position", "mutated_aa"]].copy()
+    uniprot_df_test["diff"] = test_diff
+    worst_samples = uniprot_df_test.nlargest(
+        config["num_worst_samples"], ["diff"]).to_dict("records")
+    return worst_samples
 
 
 def predict(row, model, device):
