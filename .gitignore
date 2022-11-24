@@ -13,6 +13,7 @@ resources/freesasa*
 resources/PyRosetta
 resources/rosetta*
 resources/ThermoNet/
+resources/msms*
 DeMaSk/
 test.ipynb
 compute_mutated_structures/relaxed_logs/*
@@ -30,3 +31,4 @@ stdout.log
 **/*.sc
 **/*.log
 .vscode/
+wandb/
