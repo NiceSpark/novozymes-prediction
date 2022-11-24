@@ -199,6 +199,9 @@ def add_structure_infos_by_mutation(mutations_df: pd.DataFrame,
         errors.append(
             {f"row": row})
 
+        with open("add_structure_infos_by_mutation.log", "a+") as f:
+            f.write(f"computed: {mutated_structure_path} \n")
+
         return row
 
     errors = []
@@ -229,12 +232,12 @@ def update_main_df(row, infos_df, new_columns):
 def add_structure_infos(df: pd.DataFrame, compute_sasa=True, compute_depth=True, compute_dssp=True, compute_bfactor=True, multiprocessing=False):
     # We want to load each structure pdb files only once, therefore we need
     # to go through each protein then each mutation
+    new_columns = []
+    for prefix in ["alphafold", "wild_relaxed", "mutated_relaxed", "mutation"]:
+        new_columns += [f"{prefix}_{k}" for k in DSSP_Data_Keys[2:]]
+        new_columns += [f"{prefix}_{k}" for k in ["sasa", "residue_depth",
+                                                  "c_alpha_depth", "bfactor"]]
     if not multiprocessing:
-        new_columns = []
-        for prefix in ["alphafold", "wild_relaxed", "mutated_relaxed", "mutation"]:
-            new_columns += [f"{prefix}_{k}" for k in DSSP_Data_Keys[2:]]
-            new_columns += [f"{prefix}_{k}" for k in ["sasa", "residue_depth",
-                                                      "c_alpha_depth", "bfactor"]]
         for col in new_columns:
             df[col] = np.nan
 

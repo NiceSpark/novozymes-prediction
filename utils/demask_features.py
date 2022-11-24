@@ -63,11 +63,11 @@ def add_demask_predictions_by_mutation(df: pd.DataFrame, errors: dict):
 
         if len(prediction.index) != 1:
             # print("error: prediction contains more than one element")
-            errors.append({"row": {"uniprot": row["uniprot"],
-                                   "wild_aa": wild_aa,
-                                   "mutation_position": row["mutation_position"],
-                                   "pos": pos,
-                                   "mutated_aa": mutated_aa}})
+            errors.update({row["uniprot"]: {"uniprot": row["uniprot"],
+                                            "wild_aa": wild_aa,
+                                            "mutation_position": row["mutation_position"],
+                                            "pos": pos,
+                                            "mutated_aa": mutated_aa}})
 
         row["indirect_demask_score"] = prediction["score"].iloc[0]
         row["indirect_demask_entropy"] = prediction["entropy"].iloc[0]

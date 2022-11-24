@@ -6,7 +6,7 @@
 
 import pandas as pd
 import numpy as np
-import tqdm
+import glob
 from multiprocessing import Pool
 
 from utils.features_biopython import add_structure_infos, add_protein_analysis, DSSP_Data_Keys
@@ -19,7 +19,7 @@ THREADS = 12
 MAX_SUBDF_SIZE = 200
 
 ADD_STRUCTURE_INFOS = True
-ADD_DEMASK_PREDICTIONS = True
+ADD_DEMASK_PREDICTIONS = False
 ADD_ROSETTA_SCORES = True
 ADD_PROTEIN_ANALYSIS = True
 ONLY_DDG = True
