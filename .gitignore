@@ -2,6 +2,7 @@ data/
 !data/features.json
 !data/sources.csv
 
+wandb/
 __pycache__/
 .ipynb_checkpoints/
 pdb2uniprot/
