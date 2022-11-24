@@ -100,10 +100,15 @@ def PolynomialFeatures_labeled(input_df, power):
     Inputs:
     input_df = Your labeled pandas dataframe (list of x's not raised to any power) 
     power = what order polynomial you want variables up to. (use the same power as you want entered into pp.PolynomialFeatures(power) directly)
-    Ouput:
+    if power == 1, simply return input_df unchanged
+
     Output: This function relies on the powers_ matrix which is one of the preprocessing function's outputs to create logical labels and 
     outputs a labeled pandas dataframe   
     '''
+
+    if power == 1:
+        return input_df
+
     poly = PolynomialFeatures(power)
     output_nparray = poly.fit_transform(input_df)
     powers_nparray = poly.powers_
@@ -221,7 +226,20 @@ def evaluate_model(X: torch.tensor, y: torch.tensor, model, device):
 
     # compute MSE
     mse = mean_squared_error(y_true, y_pred)
-    return mse
+
+    # compute worst results
+    diff = np.abs(np.diff(np.array([y_true, y_pred]), axis=0))[0]
+
+    return mse, diff
+
+
+def get_worst_samples(df_test, test_diff, config):
+    uniprot_df_test = df_test[["uniprot", "wild_aa",
+                               "mutation_position", "mutated_aa"]].copy()
+    uniprot_df_test["diff"] = test_diff
+    worst_samples = uniprot_df_test.nlargest(
+        config["num_worst_samples"], ["diff"]).to_dict("records")
+    return worst_samples
 
 
 def predict(row, model, device):

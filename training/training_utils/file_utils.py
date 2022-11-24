@@ -40,7 +40,59 @@ def save_submission(df, name="submission"):
     return save_path
 
 
-def log_kfold_training(name, all_training_results, config, features, model_structure):
+def log_kfold_training(name, results, config, features, model_structure):
+    date_time = datetime.now()
+    timestamp = date_time.strftime("%Y-%m-%d_%H-%M-%S")
+    dir_num = len(glob.glob(f"./outputs/{name}_*"))
+    dir_path = f"./outputs/{name}_{dir_num}"
+
+    # add timestamp to all_training_results
+    results["timestamp"] = timestamp
+
+    # create output subdir
+    os.mkdir(dir_path)
+    # log json infos
+    write_json(f"{dir_path}/results.json", results)
+    write_json(f"{dir_path}/config.json", config)
+    write_json(f"{dir_path}/features.json", features)
+    write_json(f"{dir_path}/model_structure.json", model_structure)
+
+    # plot loss/mse over time for training on whole dataset
+    whole_dataset_results = results["simple_train"]
+    train_avg_mse = sum(x['train_mse']
+                        for x in whole_dataset_results)/config['k-fold']
+    test_avg_mse = sum(x['test_mse']
+                       for x in whole_dataset_results)/config['k-fold']
+    training_time = sum(x.get('time', 0) for x in whole_dataset_results)
+    loss_list = [x.get("loss_over_time") for x in whole_dataset_results]
+    train_mse_list = [x.get("train_mse_over_time")
+                      for x in whole_dataset_results]
+    test_mse_list = [x.get("test_mse_over_time")
+                     for x in whole_dataset_results]
+
+    if (test_mse_list[0] is not None and loss_list[0] is not None):
+        plt.figure(figsize=(10, 5))
+        plt.title(
+            f"Training Results on {config['dataset_name']} for {name}_{dir_num}")
+        plt.suptitle(
+            f"{train_avg_mse= :.2f}, {test_avg_mse= :.2f}, {training_time= :.2f}")
+        plt.subplot(1, 2, 1)
+        plt.title("loss over time")
+        for loss in loss_list:
+            plt.plot(loss)
+
+        plt.subplot(1, 2, 2)
+        plt.title("mse over time, red is train, green is test")
+        for train_mse in train_mse_list:
+            plt.plot(train_mse, "r", label="train_mse")
+        for test_mse in test_mse_list:
+            plt.plot(test_mse, "g", label="test_mse")
+        plt.savefig(f"{dir_path}/whole_dataset_results.jpg")
+
+    return dir_path
+
+
+def log_learning_curve(name, all_training_results, config, features, model_structure):
     date_time = datetime.now()
     timestamp = date_time.strftime("%Y-%m-%d_%H-%M-%S")
     dir_num = len(glob.glob(f"./outputs/{name}_*"))
