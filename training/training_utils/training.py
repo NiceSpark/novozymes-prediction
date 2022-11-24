@@ -75,16 +75,19 @@ def build_optimizer(model, config):
     return optimizer
 
 
-def k_fold_training(df, ksplit, config, features, features_infos,
-                    device, wandb_active=False, keep_models=False):
+def k_fold_training(df, ksplit, global_config, features, features_infos,
+                    device, wandb_active=False, wandb_config={}, keep_models=False):
     training_results = []
-    model_list = [None]*config["kfold"]
-    scaler_list = [None]*config["kfold"]
+    model_list = [None]*global_config["kfold"]
+    scaler_list = [None]*global_config["kfold"]
 
-    for k in range(config["kfold"]):
-        if wandb_active:
-            wandb.init(config=config)
-            config = wandb.config
+    if wandb_active:
+        wandb.init(config=wandb_config)
+        config = wandb.config
+    else:
+        config = global_config
+
+    for k in tqdm.tqdm(range(global_config["kfold"])):
 
         train, test = next(ksplit)
         df_train = df[df["protein_index"].isin(train)]
@@ -96,7 +99,7 @@ def k_fold_training(df, ksplit, config, features, features_infos,
         trainloader = DataLoader(dataset_train,
                                  batch_size=config["batch_size"],
                                  shuffle=config["shuffle_dataloader"],
-                                 num_workers=config["num_workers"])
+                                 num_workers=global_config["num_workers"])
 
         # we load the data for evaluation
         X_train, y_train = prepare_eval_data(
@@ -120,38 +123,28 @@ def k_fold_training(df, ksplit, config, features, features_infos,
             trainloader, device, X_test=X_test, y_test=y_test)
         t1 = time.time()-t0
 
-        if not wandb_active:
-            # Evaluate this model:
-            model.eval()
-            with torch.set_grad_enabled(False):
-                train_mse, _ = evaluate_model(X_train, y_train, model, device)
-                test_mse, test_diff = evaluate_model(
-                    X_test, y_test, model, device)
-                # get worst samples
-                worst_samples = get_worst_samples(df_test, test_diff, config)
+        # Evaluate this model:
+        model.eval()
+        with torch.set_grad_enabled(False):
+            train_mse, _ = evaluate_model(X_train, y_train, model, device)
+            test_mse, test_diff = evaluate_model(
+                X_test, y_test, model, device)
+            # get worst samples
+            worst_samples = get_worst_samples(
+                df_test, test_diff, global_config)
 
-                # print(f"MSE obtained for k-fold {k}: {mse}")
-                results = {
-                    "loss_over_time": loss_over_time,
-                    "train_mse_over_time": train_mse_over_time,
-                    "test_mse_over_time": test_mse_over_time,
-                    "worst_samples": worst_samples,
-                    "train_mse": train_mse,
-                    "test_mse": test_mse,
-                    "time": t1
-                }
-                training_results.append(results)
+            # print(f"MSE obtained for k-fold {k}: {mse}")
+            results = {
+                "loss_over_time": loss_over_time,
+                "train_mse_over_time": train_mse_over_time,
+                "test_mse_over_time": test_mse_over_time,
+                "worst_samples": worst_samples,
+                "train_mse": train_mse,
+                "test_mse": test_mse,
+                "time": t1
+            }
+            training_results.append(results)
 
-        if wandb_active:
-            for epoch in range(len(loss_over_time)):
-                wandb.log({
-                    "test_mse": test_mse_over_time[epoch],
-                    "train_mse": train_mse_over_time[epoch],
-                    "current_loss": loss_over_time[epoch],
-                })
-
-        if wandb_active:
-            wandb.finish()
         # end of process for k, freeing memory
         # del model
 
@@ -160,5 +153,23 @@ def k_fold_training(df, ksplit, config, features, features_infos,
             scaler_list[k] = copy.deepcopy(dataset_train.scaler)
 
     # Process is complete.
+    if wandb_active:
+        num_epochs = config["num_epochs"]
+        avg_test_mse_over_time = np.mean(
+            np.array([r["test_mse_over_time"] for r in training_results]), axis=0)
+        avg_train_mse_over_time = np.mean(
+            np.array([r["train_mse_over_time"] for r in training_results]), axis=0)
+        avg_loss_over_time = np.mean(
+            np.array([r["loss_over_time"] for r in training_results]), axis=0)
+
+        for epoch in range(num_epochs):
+            wandb.log({
+                "test_mse": avg_test_mse_over_time[epoch],
+                "train_mse": avg_train_mse_over_time[epoch],
+                "loss": avg_loss_over_time[epoch],
+            })
+
+    if wandb_active:
+        wandb.finish()
 
     return training_results, model_list, scaler_list

@@ -1,16 +1,1 @@
-[
-    {
-        "uniprot": "P00644",
-        "wild_aa": "L",
-        "mutation_position": 88.0,
-        "mutated_aa": "E",
-        "diff": 10.374560860006445
-    },
-    {
-        "uniprot": "P00644",
-        "wild_aa": "L",
-        "mutation_position": 88.0,
-        "mutated_aa": "E",
-        "diff": 10.070621653285773
-    }
-]
+[]

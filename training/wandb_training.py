@@ -18,8 +18,9 @@ features, features_infos = compute_feature_list(config, features_dict)
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--verbosity", help="increase output verbosity")
-parser.add_argument("--sweep_id", help="increase output verbosity")
+parser.add_argument(
+    "--verbose", help="increase output verbosity", action="store_true")
+parser.add_argument("--sweep_id", help="sweep_id to join an ongoing sweep")
 args = parser.parse_args()
 
 if args.sweep_id is None:
@@ -30,7 +31,7 @@ else:
     print(f"using given {sweep_id=}")
 
 
-if args.verbosity:
+if args.verbose:
     print("verbosity turned on")
 else:
     print("verbosity turned off")
@@ -77,7 +78,8 @@ def run():
     df, ksplit = split_dataset(main_df, global_config)
     training_results, _, _ = k_fold_training(
         df, ksplit, global_config, features,
-        features_infos, device, wandb_active=True)
+        features_infos, device, wandb_active=True,
+        wandb_config=sweep_config)
 
 
 try:

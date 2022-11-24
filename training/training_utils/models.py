@@ -38,9 +38,12 @@ class SimpleNN(nn.Module):
                 modules.append(nn.ReLU())
             if with_dropout:
                 modules.append(nn.Dropout(dropout))
+            # last layer
+            modules.append(nn.Linear(int(fc_layer_size/2), 1))
+        else:
+            # last layer
+            modules.append(nn.Linear(int(fc_layer_size), 1))
 
-        # last layer
-        modules.append(nn.Linear(int(fc_layer_size/2), 1))
         if with_softmax:
             modules.append(nn.LogSoftmax(dim=1))
 
