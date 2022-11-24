@@ -173,8 +173,7 @@ def add_structure_infos_by_mutation(mutations_df: pd.DataFrame,
         w_aa, m_aa = row["wild_aa"], row["mutated_aa"]
         relaxed_pos = int(row["mutation_position"])+1
         name, _ = os.path.splitext(row["alphafold_path"].split("/")[-1])
-        mutated_structure_path = (f"./compute_mutated_structures/relaxed_pdb/{name}_relaxed/" +
-                                  f"{name}_relaxed_{w_aa}{relaxed_pos}{m_aa}_relaxed.pdb")
+        mutated_structure_path = row["relaxed_mutated_3D_path"]
         infos = get_structure_infos(
             mutated_structure_path, compute_sasa, compute_depth, compute_dssp, compute_bfactor)
         [pos_to_sasa, pos_to_residue_depth, pos_to_c_alpha_depth,
@@ -241,6 +240,7 @@ def add_structure_infos(df: pd.DataFrame, compute_sasa=True, compute_depth=True,
 
     for alphafold_path in df.alphafold_path.unique():
         name, _ = os.path.splitext(alphafold_path.split("/")[-1])
+
         wild_relaxed_path = f"./compute_mutated_structures/relaxed_pdb/{name}_relaxed/{name}_relaxed.pdb"
         df = add_structure_infos_by_protein(df, alphafold_path, "alphafold",
                                             compute_sasa, compute_depth, compute_dssp, compute_bfactor)
@@ -285,37 +285,51 @@ def add_structure_infos(df: pd.DataFrame, compute_sasa=True, compute_depth=True,
 
 def add_protein_analysis(df, multiprocessing=False):
     if not multiprocessing:
-        new_columns = ["charge_at_pH", "flexibility", "gravy", "molar_extinction_2", "molar_extinction_1", "sheet_fraction",
-                       "turn_fraction", "helix_fraction", "isoelectric_point", "aromaticity", "instability_index", "molecular_weight"]
+        new_columns = [
+            "wild_charge_at_pH",
+            "wild_flexibility",
+            "wild_gravy",
+            "wild_molar_extinction_2",
+            "wild_molar_extinction_1",
+            "wild_sheet_fraction",
+            "wild_turn_fraction",
+            "wild_helix_fraction",
+            "wild_isoelectric_point",
+            "wild_aromaticity",
+            "wild_instability_index",
+            "wild_molecular_weight"
+        ]
+        new_columns += ["mutated_molecular_weight", "mutated_aromaticity", "mutated_isoelectric_point", "mutated_helix_fraction",
+                        "mutated_turn_fraction", "mutated_sheet_fraction", "mutated_molar_extinction_1", "mutated_molar_extinction_2", "mutated_gravy"]
         new_columns += ["mutation_molecular_weight", "mutation_aromaticity", "mutation_isoelectric_point", "mutation_helix_fraction",
-                        "mutation_turn_fraction", "mutation_sheet_fraction", "mutation_molar_extinction_1", "mutation_molar_extinction_2", "mutation_gravy",
-                        "blosum62", "blosum80", "blosum90", "blosum100"]
+                        "mutation_turn_fraction", "mutation_sheet_fraction", "mutation_molar_extinction_1", "mutation_molar_extinction_2", "mutation_gravy"]
+        new_columns += ["blosum62", "blosum80", "blosum90", "blosum100"]
         for column in new_columns:
             df[column] = np.nan
 
-    tmp_sequence = df["sequence"].apply(lambda x: x.replace('-', ''))
+    wild_sequence = df["sequence"].apply(lambda x: x.replace('-', ''))
 
-    df["molecular_weight"] = tmp_sequence.apply(
+    df["wild_molecular_weight"] = wild_sequence.apply(
         lambda x: ProteinAnalysis(x).molecular_weight())
-    df["instability_index"] = tmp_sequence.apply(
+    df["wild_instability_index"] = wild_sequence.apply(
         lambda x: ProteinAnalysis(x).instability_index())
-    df["aromaticity"] = tmp_sequence.apply(
+    df["wild_aromaticity"] = wild_sequence.apply(
         lambda x: ProteinAnalysis(x).aromaticity())
-    df["isoelectric_point"] = tmp_sequence.apply(
+    df["wild_isoelectric_point"] = wild_sequence.apply(
         lambda x: ProteinAnalysis(x).isoelectric_point())
-    df["helix_fraction"] = tmp_sequence.apply(
+    df["wild_helix_fraction"] = wild_sequence.apply(
         lambda x: ProteinAnalysis(x).secondary_structure_fraction()[0])
-    df["turn_fraction"] = tmp_sequence.apply(
+    df["wild_turn_fraction"] = wild_sequence.apply(
         lambda x: ProteinAnalysis(x).secondary_structure_fraction()[1])
-    df["sheet_fraction"] = tmp_sequence.apply(
+    df["wild_sheet_fraction"] = wild_sequence.apply(
         lambda x: ProteinAnalysis(x).secondary_structure_fraction()[2])
-    df["molar_extinction_1"] = tmp_sequence.apply(
+    df["wild_molar_extinction_1"] = wild_sequence.apply(
         lambda x: ProteinAnalysis(x).molar_extinction_coefficient()[0])
-    df["molar_extinction_2"] = tmp_sequence.apply(
+    df["wild_molar_extinction_2"] = wild_sequence.apply(
         lambda x: ProteinAnalysis(x).molar_extinction_coefficient()[1])
-    df["gravy"] = tmp_sequence.apply(
+    df["wild_gravy"] = wild_sequence.apply(
         lambda x: ProteinAnalysis(x).gravy())
-    df["flexibility"] = tmp_sequence.apply(
+    df["wild_flexibility"] = wild_sequence.apply(
         lambda x: sum(ProteinAnalysis(x).flexibility())/len(x))
 
     def add_more_protein_analysis(row):
@@ -327,8 +341,26 @@ def add_protein_analysis(df, multiprocessing=False):
         wildtype_analysis = ProteinAnalysis(sequence)
         mutated_analysis = ProteinAnalysis(mutated_sequence)
 
-        pH = row["pH"] if row["pH"] else 7.0
-        row["charge_at_pH"] = wildtype_analysis.charge_at_pH(pH)
+        row["wild_charge_at_pH"] = wildtype_analysis.charge_at_pH(row["pH"])
+
+        # indirect:
+        row["mutated_molecular_weight"] = mutated_analysis.molecular_weight()
+        row["mutated_instability_index"] = mutated_analysis.instability_index()
+        row["mutated_aromaticity"] = mutated_analysis.aromaticity()
+        row["mutated_isoelectric_point"] = mutated_analysis.isoelectric_point()
+        row["mutated_helix_fraction"] = mutated_analysis.secondary_structure_fraction()[
+            0]
+        row["mutated_turn_fraction"] = mutated_analysis.secondary_structure_fraction()[
+            1]
+        row["mutated_sheet_fraction"] = mutated_analysis.secondary_structure_fraction()[
+            2]
+        row["mutated_molar_extinction_1"] = mutated_analysis.molar_extinction_coefficient()[
+            0]
+        row["mutated_molar_extinction_2"] = mutated_analysis.molar_extinction_coefficient()[
+            1]
+        row["mutated_gravy"] = mutated_analysis.gravy()
+        row["mutated_flexibility"] = sum(mutated_analysis.flexibility())
+        row["mutated_charge_at_pH"] = mutated_analysis.charge_at_pH(row["pH"])
 
         # deltas:
         row["mutation_molecular_weight"] = (mutated_analysis.molecular_weight()
@@ -353,8 +385,8 @@ def add_protein_analysis(df, multiprocessing=False):
                                  - wildtype_analysis.gravy())
         row["mutation_flexibility"] = (sum(mutated_analysis.flexibility())
                                        - sum(wildtype_analysis.flexibility()))
-        row["mutation_charge_at_pH"] = (mutated_analysis.charge_at_pH(pH)
-                                        - wildtype_analysis.charge_at_pH(pH))
+        row["mutation_charge_at_pH"] = (mutated_analysis.charge_at_pH(row["pH"])
+                                        - wildtype_analysis.charge_at_pH(row["pH"]))
 
         # add blosum 62, 80, 90 and 100 scores for the mutation
         # NB: blosum scores give an idea of how 2 amino acid are "close" or not, therefore it is symmetric

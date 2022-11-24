@@ -15,9 +15,10 @@ from utils.file_utils import open_json
 from utils.infos_translation import aa_char2int
 from utils.rosetta_features import add_rosetta_scores
 
-THREADS = 10
+THREADS = 12
+MAX_SUBDF_SIZE = 200
 
-ADD_STRUCTURE_INFOS = False  # this is done on GCP with 32 threads...
+ADD_STRUCTURE_INFOS = True
 ADD_DEMASK_PREDICTIONS = True
 ADD_ROSETTA_SCORES = True
 ADD_PROTEIN_ANALYSIS = True
@@ -27,11 +28,16 @@ CONVERT_MUTATION_TO_INT = True
 CLEAN_DF = True
 START_FRESH = True
 
+SUBMISSION = True
 
 NAME = "all_v3"
 DATASET_DIR = f"./data/main_dataset_creation/outputs/{NAME}/"
-DATASET_INPUT_PATH = DATASET_DIR+"dataset_with_structure_features.csv"
-DATASET_OUTPUT_PATH = DATASET_DIR+"dataset_with_all_features.csv"
+if SUBMISSION:
+    DATASET_INPUT_PATH = DATASET_DIR+"submission_with_esm_features.csv"
+    DATASET_OUTPUT_PATH = DATASET_DIR+"submission_with_all_features.csv"
+else:
+    DATASET_INPUT_PATH = DATASET_DIR+"dataset_with_structure_features.csv"
+    DATASET_OUTPUT_PATH = DATASET_DIR+"dataset_with_all_features.csv"
 
 
 if START_FRESH:
@@ -43,14 +49,16 @@ else:
 
 if CLEAN_DF:
     print(len(df))
-    if ONLY_DDG:
-        # we drop rows without ddG
-        df = df[~(df.ddG.isna())]
-    # we drop rows without essential values
-    for k in ["wild_aa", "mutation_position", "mutated_aa", "sequence", "alphafold_path", "relaxed_wild_3D_path", "relaxed_mutated_3D_path"]:
-        df = df[~(df[k].isna())]
-    print(len(df))
-    # print(df.isna().sum().to_dict())
+    if not SUBMISSION:
+        if ONLY_DDG:
+            # we drop rows without ddG
+            df = df[~(df.ddG.isna())]
+        # we drop rows without essential values
+        for k in ["wild_aa", "mutation_position", "mutated_aa", "sequence", "alphafold_path", "relaxed_wild_3D_path", "relaxed_mutated_3D_path"]:
+            df = df[~(df[k].isna())]
+        print(len(df))
+        # print(df.isna().sum().to_dict())
+
 
 # ADD all columns that will be computed
 new_columns = []
@@ -83,8 +91,22 @@ if ADD_ROSETTA_SCORES:
             new_columns.append(f"{prefix}_{col}")
 
 if ADD_PROTEIN_ANALYSIS:
-    new_columns += ["charge_at_pH", "flexibility", "gravy", "molar_extinction_2", "molar_extinction_1", "sheet_fraction",
-                    "turn_fraction", "helix_fraction", "isoelectric_point", "aromaticity", "instability_index", "molecular_weight"]
+    new_columns += [
+        "wild_wildcharge_at_pH",
+        "wild_flexibility",
+        "wild_gravy",
+        "wild_molar_extinction_2",
+        "wild_molar_extinction_1",
+        "wild_sheet_fraction",
+        "wild_turn_fraction",
+        "wild_helix_fraction",
+        "wild_isoelectric_point",
+        "wild_aromaticity",
+        "wild_instability_index",
+        "wild_molecular_weight"
+    ]
+    new_columns += ["mutated_molecular_weight", "mutated_aromaticity", "mutated_isoelectric_point", "mutated_helix_fraction",
+                    "mutated_turn_fraction", "mutated_sheet_fraction", "mutated_molar_extinction_1", "mutated_molar_extinction_2", "mutated_gravy"]
     new_columns += ["mutation_molecular_weight", "mutation_aromaticity", "mutation_isoelectric_point", "mutation_helix_fraction",
                     "mutation_turn_fraction", "mutation_sheet_fraction", "mutation_molar_extinction_1", "mutation_molar_extinction_2", "mutation_gravy"]
     new_columns += ["blosum62", "blosum80", "blosum90", "blosum100"]
@@ -95,12 +117,22 @@ df = pd.concat([df, new_columns_df], axis=1)
 unique_uniprot = df.uniprot.unique()
 all_uniprot_dfs = [df[df.uniprot.eq(uniprot)].copy()
                    for uniprot in unique_uniprot]
-print({k: v for k, v in
-       all_uniprot_dfs[0].isna().sum().to_dict().items()
-       if v > 0})
+
+# only one uniprot in submission case
+if SUBMISSION and (len(all_uniprot_dfs) == 1):
+    uniprot_df = all_uniprot_dfs[0].copy()
+    if len(uniprot_df) > MAX_SUBDF_SIZE:
+        # in the case of a protein with a lot of related mutation we split it into THREADS subdf
+        number_splits = min(THREADS, len(uniprot_df) //
+                            MAX_SUBDF_SIZE)
+        all_uniprot_dfs = [uniprot_df.iloc[index, :].copy()
+                           for index in np.array_split(range(len(uniprot_df)), number_splits)]
+        print(
+            f"divided AF70 into {len(all_uniprot_dfs)} subdf")
 
 
 def compute_features(df):
+    print(f"computing {df.uniprot.unique()}")
     if CONVERT_MUTATION_TO_INT:
         df["wild_aa_int"] = df["wild_aa"].apply(lambda x: aa_char2int[x])
         df["mutated_aa_int"] = df["mutated_aa"].apply(lambda x: aa_char2int[x])
@@ -125,8 +157,7 @@ def compute_features(df):
 
 
 with Pool(THREADS) as pool:
-    result_dfs = list(tqdm.tqdm(
-        (pool.imap(compute_features, all_uniprot_dfs)), total=len(all_uniprot_dfs)))
+    result_dfs = list(pool.imap(compute_features, all_uniprot_dfs))
 
 
 # Merge all df together

@@ -143,6 +143,35 @@ def compute_embeddings_pca(df, t_model, batch_converter, max_cuda_seq_len):
     return embeddings, sequence_to_embed_mapping, pca_pool, pca_embeds, pca_local, sequences_too_big_for_cuda
 
 
+def compute_embeddings_only(df, t_model, batch_converter, pca_pool, max_cuda_seq_len):
+    all_sequences = df.sequence.unique()
+    embeddings = {
+        "all_seq_embed_pool": np.zeros((len(all_sequences), 1280)),
+        "all_seq_embed_local": [None]*len(all_sequences),
+        "all_seq_embed_by_position": [None]*len(all_sequences),
+        "all_seq_prob": [None]*len(all_sequences),
+    }
+
+    # first we do 'small' proteins with cuda
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    t_model.to(device)
+    print(device)
+    embeddings, _ = extract_embeddings(df, all_sequences,
+                                       max_cuda_seq_len, embeddings,
+                                       t_model, device, batch_converter)
+
+    # set sequence_to_embed_mapping
+    sequence_to_embed_mapping = {seq: i for i, seq in enumerate(all_sequences)}
+
+    # create stack
+    pca_embeds = pca_pool.transform(
+        embeddings.pop("all_seq_embed_pool").astype("float32"))
+
+    _ = gc.collect()
+
+    return embeddings, sequence_to_embed_mapping, pca_embeds
+
+
 def add_embbeddings(row, sequence_to_embed_mapping, embeddings,
                     pca_local, pca_pool, pca_embeds, token_map,
                     t_model, device, batch_converter, max_cuda_seq_len,
@@ -257,8 +286,9 @@ def update_main_df(row, embeddings_df, new_columns):
 
 
 def add_columns(df, new_columns):
-    for col in new_columns:
-        df[col] = np.nan
+    new_columns_df = pd.DataFrame(columns=new_columns)
+    df = pd.concat([df, new_columns_df], axis=1)
+    return df
 
 
 def add_esm_features(main_df, only_ddg=True, max_cuda_seq_len=7000, save_embeddings_df=True, use_saved_embeddings=False):
@@ -299,3 +329,60 @@ def add_esm_features(main_df, only_ddg=True, max_cuda_seq_len=7000, save_embeddi
     main_df = main_df.apply(lambda row: update_main_df(row, df, new_columns),
                             axis=1)
     return main_df
+
+
+def submission_compute_pca(main_df, submission_df, only_ddg=True, max_cuda_seq_len=7000):
+
+    t_model, token_map, batch_converter = load_esm_model()
+    df = main_df.copy()
+    df.drop_duplicates(subset=SUBSET_DUPLICATES_NO_PH, inplace=True)
+
+    if only_ddg:
+        df = df[~(df.ddG.isna())]
+
+    # we need to have the same pca as the training dataset
+    _, _, pca_pool, pca_embeds, pca_local, seq2big = compute_embeddings_pca(
+        df, t_model, batch_converter, max_cuda_seq_len)
+
+    # we need the embeddings for the test dataset
+    embeddings, seq2embeds, pca_embeds = compute_embeddings_only(
+        submission_df, t_model, batch_converter, pca_pool, max_cuda_seq_len)
+
+    context = {
+        "seq2big": seq2big,
+        "seq2embeds": seq2embeds,
+        "embeddings": embeddings,
+        "t_model": t_model,
+        "pca_local": pca_local,
+        "pca_pool": pca_pool,
+        "pca_embeds": pca_embeds,
+        "batch_converter": batch_converter,
+        "token_map": token_map,
+        "max_cuda_seq_len": max_cuda_seq_len,
+    }
+    return context
+
+
+def submission_add_esm_features(submission_df, context):
+    seq2big = context["seq2big"]
+    seq2embeds = context["seq2embeds"]
+    embeddings = context["embeddings"]
+    t_model = context["t_model"]
+    pca_local = context["pca_local"]
+    pca_pool = context["pca_pool"]
+    pca_embeds = context["pca_embeds"]
+    batch_converter = context["batch_converter"]
+    token_map = context["token_map"]
+    max_cuda_seq_len = context["max_cuda_seq_len"]
+
+    new_columns = [f"esm_pca_pool_{k}" for k in range(32)]
+    new_columns += [f"esm_pca_wild_{k}" for k in range(16)]
+    new_columns += [f"esm_pca_mutant_{k}" for k in range(16)]
+    new_columns += [f"esm_pca_local_{k}" for k in range(16)]
+    new_columns += ["esm_mutation_probability", "esm_mutation_entropy"]
+    submission_df = add_columns(submission_df, new_columns)
+
+    submission_df = add_embeddings_to_df(submission_df, seq2big, seq2embeds, embeddings,
+                                         t_model, pca_local, pca_pool, pca_embeds,
+                                         batch_converter, token_map, max_cuda_seq_len)
+    return submission_df
