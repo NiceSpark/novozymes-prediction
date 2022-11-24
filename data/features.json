@@ -20,7 +20,8 @@
     "blosum": [
         "blosum62",
         "blosum80",
-        "blosum90"
+        "blosum90",
+        "blosum100"
     ],
     "demask": [
         "direct_demask_entropy",
@@ -60,25 +61,85 @@
         "mutation_sheet_fraction",
         "mutation_turn_fraction"
     ],
-    "3D_structure_analysis": [
-        "bfactor",
-        "sasa",
-        "residue_depth",
-        "c_alpha_depth"
+    "alphafold_3D_structure_analysis": [
+        "alphafold_sasa",
+        "alphafold_residue_depth",
+        "alphafold_c_alpha_depth",
+        "alphafold_bfactor"
     ],
-    "dssp_3D_analysis": [
-        "Secondary_structure",
-        "Relative_ASA",
-        "Psi",
-        "Phi",
-        "NH->O_1_energy",
-        "NH->O_1_relidx",
-        "O->NH_1_energy",
-        "O->NH_1_relidx",
-        "O->NH_2_energy",
-        "O->NH_2_relidx",
-        "NH->O_2_energy",
-        "NH->O_2_relidx"
+    "alphafold_dssp_3D_analysis": [
+        "alphafold_Secondary_structure",
+        "alphafold_Relative_ASA",
+        "alphafold_Phi",
+        "alphafold_Psi",
+        "alphafold_NH->O_1_relidx",
+        "alphafold_NH->O_1_energy",
+        "alphafold_O->NH_1_relidx",
+        "alphafold_O->NH_1_energy",
+        "alphafold_NH->O_2_relidx",
+        "alphafold_NH->O_2_energy",
+        "alphafold_O->NH_2_relidx",
+        "alphafold_O->NH_2_energy"
+    ],
+    "wild_relaxed_3D_structure_analysis": [
+        "wild_relaxed_sasa",
+        "wild_relaxed_residue_depth",
+        "wild_relaxed_c_alpha_depth",
+        "wild_relaxed_bfactor"
+    ],
+    "wild_relaxed_dssp_3D_analysis": [
+        "wild_relaxed_Secondary_structure",
+        "wild_relaxed_Relative_ASA",
+        "wild_relaxed_Phi",
+        "wild_relaxed_Psi",
+        "wild_relaxed_NH->O_1_relidx",
+        "wild_relaxed_NH->O_1_energy",
+        "wild_relaxed_O->NH_1_relidx",
+        "wild_relaxed_O->NH_1_energy",
+        "wild_relaxed_NH->O_2_relidx",
+        "wild_relaxed_NH->O_2_energy",
+        "wild_relaxed_O->NH_2_relidx",
+        "wild_relaxed_O->NH_2_energy"
+    ],
+    "mutated_relaxed_3D_structure_analysis": [
+        "mutated_relaxed_sasa",
+        "mutated_relaxed_residue_depth",
+        "mutated_relaxed_c_alpha_depth",
+        "mutated_relaxed_bfactor"
+    ],
+    "mutated_relaxed_dssp_3D_analysis": [
+        "mutated_relaxed_Secondary_structure",
+        "mutated_relaxed_Relative_ASA",
+        "mutated_relaxed_Phi",
+        "mutated_relaxed_Psi",
+        "mutated_relaxed_NH->O_1_relidx",
+        "mutated_relaxed_NH->O_1_energy",
+        "mutated_relaxed_O->NH_1_relidx",
+        "mutated_relaxed_O->NH_1_energy",
+        "mutated_relaxed_NH->O_2_relidx",
+        "mutated_relaxed_NH->O_2_energy",
+        "mutated_relaxed_O->NH_2_relidx",
+        "mutated_relaxed_O->NH_2_energy"
+    ],
+    "mutation_3D_structure_analysis": [
+        "mutation_sasa",
+        "mutation_residue_depth",
+        "mutation_c_alpha_depth",
+        "mutation_bfactor"
+    ],
+    "mutation_dssp_3D_analysis": [
+        "mutation_Secondary_structure",
+        "mutation_Relative_ASA",
+        "mutation_Phi",
+        "mutation_Psi",
+        "mutation_NH->O_1_relidx",
+        "mutation_NH->O_1_energy",
+        "mutation_O->NH_1_relidx",
+        "mutation_O->NH_1_energy",
+        "mutation_NH->O_2_relidx",
+        "mutation_NH->O_2_energy",
+        "mutation_O->NH_2_relidx",
+        "mutation_O->NH_2_energy"
     ],
     "esm_pca_pool": [
         "esm_pca_pool_0",

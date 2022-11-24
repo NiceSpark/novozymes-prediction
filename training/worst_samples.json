@@ -1,0 +1,44 @@
+[
+    {
+        "uniprot": "P23657",
+        "wild_aa": "K",
+        "mutation_position": 69.0,
+        "mutated_aa": "A",
+        "diff": 9.848754048894362
+    },
+    {
+        "uniprot": "P05519",
+        "wild_aa": "L",
+        "mutation_position": 174.0,
+        "mutated_aa": "V",
+        "diff": 9.825816449874305
+    },
+    {
+        "uniprot": "P21695",
+        "wild_aa": "R",
+        "mutation_position": 268.0,
+        "mutated_aa": "A",
+        "diff": 9.566304500524819
+    },
+    {
+        "uniprot": "P05825",
+        "wild_aa": "E",
+        "mutation_position": 271.0,
+        "mutated_aa": "C",
+        "diff": 9.894642382736833
+    },
+    {
+        "uniprot": "P04637",
+        "wild_aa": "R",
+        "mutation_position": 336.0,
+        "mutated_aa": "A",
+        "diff": 9.288954622271342
+    },
+    {
+        "uniprot": "P0AE67",
+        "wild_aa": "G",
+        "mutation_position": 75.0,
+        "mutated_aa": "A",
+        "diff": 9.030602824021098
+    }
+]
