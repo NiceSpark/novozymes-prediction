@@ -23,6 +23,7 @@ pyrosettacolabsetup = "*"
 torch = "*"
 torchvision = "*"
 torchaudio = "*"
+wandb = "*"
 
 [dev-packages]
 ipykernel = "*"
