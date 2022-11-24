@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch
 import time
 import tqdm
+import wandb
 from sklearn.metrics import mean_squared_error
 from torch.utils.data import DataLoader
 
@@ -10,8 +11,8 @@ from .models import SimpleNN
 from .model_utils import *
 
 
-def train_model(model: SimpleNN, config, optimizer, loss_function,
-                trainloader, device,
+def train_model(model: SimpleNN, config,
+                optimizer, loss_function, trainloader, device,
                 X_test=None, y_test=None):
 
     loss_over_time = []
@@ -19,7 +20,8 @@ def train_model(model: SimpleNN, config, optimizer, loss_function,
     test_mse_over_time = []
 
     # Run the training loop
-    for epoch in tqdm.tqdm(range(config["num_epochs"])):
+    for epoch in range(config["num_epochs"]):
+
         # set model in train mode
         model.train()
         # Set current loss value
@@ -62,12 +64,28 @@ def train_model(model: SimpleNN, config, optimizer, loss_function,
     return model, loss_over_time, train_mse_over_time, test_mse_over_time
 
 
-def k_fold_training(df, ksplit, config, features, features_infos, device, keep_models=False):
-    training_results = []
-    model_list = [None]*config["k-fold"]
-    scaler_list = [None]*config["k-fold"]
+def build_optimizer(model, config):
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
+    if config["optimizer"] == "sgd":
+        optimizer = torch.optim.SGD(model.parameters(),
+                                    lr=config["learning_rate"], momentum=0.9)
+    elif config["optimizer"] == "adam":
+        optimizer = torch.optim.Adam(model.parameters(),
+                                     lr=config["learning_rate"])
+    return optimizer
 
-    for k in range(config["k-fold"]):
+
+def k_fold_training(df, ksplit, config, features, features_infos,
+                    device, wandb_active=False, keep_models=False):
+    training_results = []
+    model_list = [None]*config["kfold"]
+    scaler_list = [None]*config["kfold"]
+
+    for k in range(config["kfold"]):
+        if wandb_active:
+            wandb.init(config=config)
+            config = wandb.config
+
         train, test = next(ksplit)
         df_train = df[df["protein_index"].isin(train)]
         df_test = df[df["protein_index"].isin(test)]
@@ -88,40 +106,52 @@ def k_fold_training(df, ksplit, config, features, features_infos, device, keep_m
 
         # Initialize a new Novozymes Model
         model = SimpleNN(
-            len(features_infos["direct_features"]), config["model_config"])
+            len(features_infos["direct_features"]), config)
         model.to(torch.double)
         model.to(device)
 
         # Define the loss function and optimizer
         loss_function = nn.L1Loss()
-        optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
-
+        optimizer = build_optimizer(model, config)
         # Train model:
         t0 = time.time()
         model, loss_over_time, train_mse_over_time, test_mse_over_time = train_model(
-            model, config, optimizer, loss_function, trainloader, device, X_test, y_test)
+            model, config, optimizer, loss_function,
+            trainloader, device, X_test=X_test, y_test=y_test)
         t1 = time.time()-t0
 
-        # Evaluate this model:
-        model.eval()
-        with torch.set_grad_enabled(False):
-            train_mse, _ = evaluate_model(X_train, y_train, model, device)
-            test_mse, test_diff = evaluate_model(X_test, y_test, model, device)
-            # get worst samples
-            worst_samples = get_worst_samples(df_test, test_diff, config)
+        if not wandb_active:
+            # Evaluate this model:
+            model.eval()
+            with torch.set_grad_enabled(False):
+                train_mse, _ = evaluate_model(X_train, y_train, model, device)
+                test_mse, test_diff = evaluate_model(
+                    X_test, y_test, model, device)
+                # get worst samples
+                worst_samples = get_worst_samples(df_test, test_diff, config)
 
-            # print(f"MSE obtained for k-fold {k}: {mse}")
-            results = {
-                "loss_over_time": loss_over_time,
-                "train_mse_over_time": train_mse_over_time,
-                "test_mse_over_time": test_mse_over_time,
-                "worst_samples": worst_samples,
-                "train_mse": train_mse,
-                "test_mse": test_mse,
-                "time": t1
-            }
-            training_results.append(results)
+                # print(f"MSE obtained for k-fold {k}: {mse}")
+                results = {
+                    "loss_over_time": loss_over_time,
+                    "train_mse_over_time": train_mse_over_time,
+                    "test_mse_over_time": test_mse_over_time,
+                    "worst_samples": worst_samples,
+                    "train_mse": train_mse,
+                    "test_mse": test_mse,
+                    "time": t1
+                }
+                training_results.append(results)
 
+        if wandb_active:
+            for epoch in range(len(loss_over_time)):
+                wandb.log({
+                    "test_mse": test_mse_over_time[epoch],
+                    "train_mse": train_mse_over_time[epoch],
+                    "current_loss": loss_over_time[epoch],
+                })
+
+        if wandb_active:
+            wandb.finish()
         # end of process for k, freeing memory
         # del model
 
