@@ -33,21 +33,35 @@
         "indirect_demask_matrix",
         "indirect_demask_score"
     ],
-    "protein_analysis": [
-        "aromaticity",
-        "charge_at_pH",
-        "flexibility",
-        "gravy",
-        "helix_fraction",
-        "isoelectric_point",
-        "instability_index",
-        "molecular_weight",
-        "molar_extinction_1",
-        "molar_extinction_2",
-        "sheet_fraction",
-        "turn_fraction"
+    "wild_protein_analysis": [
+        "wild_aromaticity",
+        "wild_charge_at_pH",
+        "wild_flexibility",
+        "wild_gravy",
+        "wild_helix_fraction",
+        "wild_isoelectric_point",
+        "wild_instability_index",
+        "wild_molecular_weight",
+        "wild_molar_extinction_1",
+        "wild_molar_extinction_2",
+        "wild_sheet_fraction",
+        "wild_turn_fraction"
     ],
-    "deltas_protein_analysis": [
+    "mutated_protein_analysis": [
+        "mutated_aromaticity",
+        "mutated_charge_at_pH",
+        "mutated_flexibility",
+        "mutated_gravy",
+        "mutated_helix_fraction",
+        "mutated_isoelectric_point",
+        "mutated_instability_index",
+        "mutated_molecular_weight",
+        "mutated_molar_extinction_1",
+        "mutated_molar_extinction_2",
+        "mutated_sheet_fraction",
+        "mutated_turn_fraction"
+    ],
+    "mutation_protein_analysis": [
         "mutation_aromaticity",
         "mutation_charge_at_pH",
         "mutation_flexibility",

@@ -4,46 +4,19 @@
     "use_cuda": false,
     "num_epochs": 30,
     "batch_size": 256,
-    "hidden_layer_num_parameters": 192,
-    "num_workers": 12,
-    "use_features": {
-        "identification": false,
-        "basics": true,
-        "blosum": true,
-        "direct_demask": true,
-        "indirect_demask": false,
-        "protein_analysis": false,
-        "deltas_protein_analysis": true,
-        "alphafold_3D_structure_analysis": true,
-        "wild_relaxed_3D_structure_analysis": false,
-        "mutated_relaxed_3D_structure_analysis": false,
-        "mutation_3D_structure_analysis": true,
-        "alphafold_dssp_3D_analysis": true,
-        "wild_relaxed_dssp_3D_analysis": false,
-        "mutated_relaxed_dssp_3D_analysis": false,
-        "mutation_dssp_3D_analysis": true,
-        "esm_pca_pool": true,
-        "esm_pca_wild": false,
-        "esm_pca_mutant": false,
-        "esm_pca_local": true,
-        "esm_global": true,
-        "alphafold_rosetta_scores": false,
-        "wild_relaxed_rosetta_scores": false,
-        "mutated_relaxed_rosetta_scores": false,
-        "mutation_rosetta_scores": true,
-        "target": false
+    "model_config": {
+        "nn_linear_parameters": 128,
+        "num_hidden_layers": 4,
+        "with_final_half_layer": true,
+        "with_relu": true
     },
-    "bad_uniprot": [
-        "P02751",
-        "P07445",
-        "O61594",
-        "P00974",
-        "Q9H334",
-        "P0AA25"
-    ],
+    "num_workers": 12,
+    "max_protein_length": 600,
+    "shuffle_dataloader": true,
+    "reverse_probability": 0,
     "min_mutations_per_protein": 0,
     "target": "ddG",
-    "k-fold": 10,
+    "k-fold": 5,
     "select_by_protein": false,
     "polynomial_features_power": 1,
     "num_worst_samples": 10,
@@ -55,6 +28,121 @@
         "hidden_layer_num_parameters": [],
         "dataset_selection": [],
         "alphafold_and_mutation": [],
-        "max_protein_size": []
+        "max_protein_length": []
+    },
+    "bad_uniprot": [
+        "P02751",
+        "P07445",
+        "O61594",
+        "P00974",
+        "Q9H334",
+        "P0AA25",
+        "P24821"
+    ],
+    "features_config": {
+        "identification": {
+            "use": false,
+            "category": "global"
+        },
+        "basics": {
+            "use": true,
+            "category": "global"
+        },
+        "blosum": {
+            "use": true,
+            "category": "global"
+        },
+        "direct_demask": {
+            "use": true,
+            "category": "direct"
+        },
+        "indirect_demask": {
+            "use": true,
+            "category": "indirect"
+        },
+        "wild_protein_analysis": {
+            "use": false,
+            "category": "direct"
+        },
+        "mutated_protein_analysis": {
+            "use": false,
+            "category": "indirect"
+        },
+        "mutation_protein_analysis": {
+            "use": true,
+            "category": "delta"
+        },
+        "alphafold_3D_structure_analysis": {
+            "use": true,
+            "category": "global"
+        },
+        "wild_relaxed_3D_structure_analysis": {
+            "use": false,
+            "category": "direct"
+        },
+        "mutated_relaxed_3D_structure_analysis": {
+            "use": false,
+            "category": "indirect"
+        },
+        "mutation_3D_structure_analysis": {
+            "use": true,
+            "category": "delta"
+        },
+        "alphafold_dssp_3D_analysis": {
+            "use": true,
+            "category": "global"
+        },
+        "wild_relaxed_dssp_3D_analysis": {
+            "use": false,
+            "category": "direct"
+        },
+        "mutated_relaxed_dssp_3D_analysis": {
+            "use": false,
+            "category": "indirect"
+        },
+        "mutation_dssp_3D_analysis": {
+            "use": true,
+            "category": "delta"
+        },
+        "esm_pca_pool": {
+            "use": true,
+            "category": "global"
+        },
+        "esm_pca_wild": {
+            "use": false,
+            "category": "direct"
+        },
+        "esm_pca_mutant": {
+            "use": false,
+            "category": "indirect"
+        },
+        "esm_pca_local": {
+            "use": true,
+            "category": "delta"
+        },
+        "esm_global": {
+            "use": true,
+            "category": "global"
+        },
+        "alphafold_rosetta_scores": {
+            "use": false,
+            "category": "global"
+        },
+        "wild_relaxed_rosetta_scores": {
+            "use": false,
+            "category": "direct"
+        },
+        "mutated_relaxed_rosetta_scores": {
+            "use": false,
+            "category": "indirect"
+        },
+        "mutation_rosetta_scores": {
+            "use": true,
+            "category": "delta"
+        },
+        "target": {
+            "use": false,
+            "category": "global"
+        }
     }
 }
