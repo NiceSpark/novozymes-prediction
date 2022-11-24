@@ -11,12 +11,13 @@ from Bio.PDB.PDBExceptions import PDBConstructionWarning
 from Bio.PDB.DSSP import DSSP, ss_to_index
 from biopandas.pdb import PandasPdb
 from blosum import BLOSUM
+from .file_utils import open_json, write_json
 
 SUBSET_DUPLICATES_NO_PH = ["uniprot", "wild_aa", "mutation_position",
                            "mutated_aa", "sequence"]
 
 BLOSUM100 = BLOSUM(
-    "/home/ml/novozymes-prediction/data/main_dataset_creation/blosum/blosum100.mat")
+    "/home/jupyter/novozymes-prediction/data/main_dataset_creation/blosum/blosum100.mat")
 
 DSSP_Data_Keys = [
     "DSSP_index",
@@ -230,29 +231,44 @@ def update_main_df(row, infos_df, new_columns):
 def add_structure_infos(df: pd.DataFrame, compute_sasa=True, compute_depth=True, compute_dssp=True, compute_bfactor=True, multiprocessing=False):
     # We want to load each structure pdb files only once, therefore we need
     # to go through each protein then each mutation
+    new_columns = []
+    for prefix in ["alphafold", "wild_relaxed", "mutated_relaxed", "mutation"]:
+        new_columns += [f"{prefix}_{k}" for k in DSSP_Data_Keys[2:]]
+        new_columns += [f"{prefix}_{k}" for k in ["sasa", "residue_depth",
+                                                    "c_alpha_depth", "bfactor"]]
+                                                    
     if not multiprocessing:
-        new_columns = []
-        for prefix in ["alphafold", "wild_relaxed", "mutated_relaxed", "mutation"]:
-            new_columns += [f"{prefix}_{k}" for k in DSSP_Data_Keys[2:]]
-            new_columns += [f"{prefix}_{k}" for k in ["sasa", "residue_depth",
-                                                      "c_alpha_depth", "bfactor"]]
         for col in new_columns:
             df[col] = np.nan
 
     for alphafold_path in df.alphafold_path.unique():
         name, _ = os.path.splitext(alphafold_path.split("/")[-1])
         wild_relaxed_path = f"/mnt/disks/media/compute_mutated_structures/relaxed_pdb/{name}_relaxed/{name}_relaxed.pdb"
-        df = add_structure_infos_by_protein(df, alphafold_path, "alphafold",
-                                            compute_sasa, compute_depth, compute_dssp, compute_bfactor)
-        df = add_structure_infos_by_protein(df, wild_relaxed_path, "wild_relaxed",
-                                            compute_sasa, compute_depth, compute_dssp, compute_bfactor)
+        try:
+            df = add_structure_infos_by_protein(df, alphafold_path, "alphafold",
+                                                compute_sasa, compute_depth, compute_dssp, compute_bfactor)
+        except Exception as e:
+            errors = open_json("/home/jupyter/novozymes-prediction/errors.json")
+            errors.append(f"error happend for {name} in add_structure_infos_by_protein (alphafold): {e}")
+        try:
+            df = add_structure_infos_by_protein(df, wild_relaxed_path, "wild_relaxed",
+                                                compute_sasa, compute_depth, compute_dssp, compute_bfactor)
+        except Exception as e:
+            errors = open_json("/home/jupyter/novozymes-prediction/errors.json")
+            errors.append(f"error happend for {name} in add_structure_infos_by_protein (wild_relaxed): {e}")
 
     unique_mutations_df = df.copy()
     unique_mutations_df.drop_duplicates(
         subset=SUBSET_DUPLICATES_NO_PH, inplace=True)
-    unique_mutations_df = add_structure_infos_by_mutation(unique_mutations_df,
-                                                          compute_sasa, compute_depth, compute_dssp,
-                                                          compute_bfactor)
+    
+    try:
+        unique_mutations_df = add_structure_infos_by_mutation(unique_mutations_df,
+                                                            compute_sasa, compute_depth, compute_dssp,
+                                                            compute_bfactor)
+    except Exception as e:
+        errors = open_json("/home/jupyter/novozymes-prediction/errors.json")
+        errors.append(f"error happend for {name} in add_structure_infos_by_mutation: {e}")
+
 
     # add deltas
     unique_mutations_df["mutation_sasa"] = unique_mutations_df["mutated_relaxed_sasa"] - \
