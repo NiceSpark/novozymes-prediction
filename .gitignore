@@ -37,3 +37,4 @@ stdout.log
 **/*.log
 .vscode/
 wandb/
+thermonet*.sh
