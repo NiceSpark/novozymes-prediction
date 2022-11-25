@@ -24,7 +24,7 @@ parser.add_argument("--sweep_id", help="sweep_id to join an ongoing sweep")
 args = parser.parse_args()
 
 if args.sweep_id is None:
-    sweep_id = wandb.sweep(sweep_config, project="test")
+    sweep_id = wandb.sweep(sweep_config, project="nesp_simple_nn")
     print(f"set up new sweep {sweep_id=}")
 else:
     sweep_id = args.sweep_id
