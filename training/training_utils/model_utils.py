@@ -6,6 +6,10 @@ from sklearn.preprocessing import StandardScaler, PolynomialFeatures
 from sklearn.model_selection import KFold
 from sklearn.metrics import mean_squared_error
 from torch.utils.data import Dataset
+from pickle import dump, load
+from glob import glob
+
+from .file_utils import open_json
 
 
 class Row_Selector():
@@ -124,30 +128,12 @@ def compute_feature_list(config: dict, features_dict: dict):
 
 
 def split_dataset(df: pd.DataFrame, config):
-    """returns a list of k DataFrames"""
+    """adds the kfold group to each row, based on the fixed_ksplit from the config"""
+    fixed_ksplit = open_json(config["ksplit_path"])
+    df["kfold"] = df["alphafold_path"].apply(
+        lambda x: fixed_ksplit[x])
 
-    k = config["kfold"]
-    kfold = KFold(k, shuffle=True)
-    min_mutations_per_protein = config["min_mutations_per_protein"]
-
-    # we split the dataset by proteins, in order to make sure the same protein
-    # sequence is not in both train and test
-    # here we use alphafold paths as a unique identifier of a protein
-    # TODO: clean that: alphafold => uniprot_id
-    alphafold_paths = df["alphafold_path"].unique()
-    alphafold_to_id = {_path: i for i,
-                       _path in enumerate(alphafold_paths)}
-    # add protein index number to the df
-    df["protein_index"] = df["alphafold_path"].apply(
-        lambda x: alphafold_to_id[x])
-    # compute which indexes correspond to protein with not enough mutations appearing
-    not_enough_mutations = (
-        df["protein_index"].value_counts() < min_mutations_per_protein)
-    # remove the proteins with not enough mutations
-    df = df[~(df["protein_index"].apply(lambda x: not_enough_mutations[x]))]
-    # do the k-fold on the protein index:
-
-    return df, kfold.split(df["protein_index"].unique())
+    return df
 
 
 def PolynomialFeatures_labeled(input_df, power):
@@ -311,3 +297,38 @@ def predict(row, model, device):
     # retrieve numpy array
     yhat = yhat.detach().numpy()
     return yhat
+
+
+def load_dataset(config, features):
+    df = pd.read_csv(f"{config['dataset_dir']}/{config['dataset_name']}.csv")
+
+    for feature in features:
+        # remove line with nan values for selected features
+        df = df[~(df[feature].isna())]
+
+    # remove bad uniprot
+    df = df[~(df["uniprot"].isin(config["bad_uniprot"]))]
+
+    # apply max protein length
+    df = df[df.length.le(config["max_protein_length"])]
+
+    print(f"training on {len(df)} data")
+    return df
+
+
+def save_models_and_scalers(dir_path: str, model_list: list, scaler_list: list):
+    for i, model in enumerate(model_list):
+        torch.save(model, f"{dir_path}/model_{i}.pth")
+    for i, scaler in enumerate(scaler_list):
+        dump(scaler, open(f"{dir_path}/scaler_{i}.pkl", "wb"))
+
+
+def load_models_and_scalers(dir_path: str):
+    model_list, scaler_list = [], []
+
+    for model_path in glob(f"{dir_path}/model_*.pth"):
+        model_list.append(torch.load(model_path))
+    for scaler_path in glob(f"{dir_path}/scaler_*.pkl"):
+        scaler_list.append(load(open(scaler_path, 'rb')))
+
+    return model_list, scaler_list

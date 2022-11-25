@@ -75,7 +75,7 @@ def build_optimizer(model, config):
     return optimizer
 
 
-def k_fold_training(df, ksplit, global_config, features, features_infos,
+def k_fold_training(df, global_config, features, features_infos,
                     device, wandb_active=False, wandb_config={}, keep_models=False):
     training_results = []
     model_list = [None]*global_config["kfold"]
@@ -88,10 +88,10 @@ def k_fold_training(df, ksplit, global_config, features, features_infos,
         config = global_config
 
     for k in tqdm.tqdm(range(global_config["kfold"])):
-
-        train, test = next(ksplit)
-        df_train = df[df["protein_index"].isin(train)]
-        df_test = df[df["protein_index"].isin(test)]
+        train = list(range(global_config["kfold"]))
+        test = [train.pop(k)]
+        df_train = df[df["kfold"].isin(train)]
+        df_test = df[df["kfold"].isin(test)]
 
         # we load the data for training
         dataset_train = prepare_train_data(

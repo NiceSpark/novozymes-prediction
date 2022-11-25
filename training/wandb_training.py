@@ -75,9 +75,9 @@ main_df = load_dataset(global_config)
 
 def run():
     # add protein_index to the dataset and get ksplit:
-    df, ksplit = split_dataset(main_df, global_config)
+    df = split_dataset(main_df, global_config)
     training_results, _, _ = k_fold_training(
-        df, ksplit, global_config, features,
+        df, global_config, features,
         features_infos, device, wandb_active=True,
         wandb_config=sweep_config)
 
