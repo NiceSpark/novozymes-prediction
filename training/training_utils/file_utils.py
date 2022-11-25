@@ -60,9 +60,9 @@ def log_kfold_training(name, results, config, features, model_structure):
     # plot loss/mse over time for training on whole dataset
     whole_dataset_results = results["simple_train"]
     train_avg_mse = sum(x['train_mse']
-                        for x in whole_dataset_results)/config['k-fold']
+                        for x in whole_dataset_results)/config["kfold"]
     test_avg_mse = sum(x['test_mse']
-                       for x in whole_dataset_results)/config['k-fold']
+                       for x in whole_dataset_results)/config["kfold"]
     training_time = sum(x.get('time', 0) for x in whole_dataset_results)
     loss_list = [x.get("loss_over_time") for x in whole_dataset_results]
     train_mse_list = [x.get("train_mse_over_time")
@@ -125,9 +125,9 @@ def log_learning_curve(name, all_training_results, config, features, model_struc
     # plot loss/mse over time for training on whole dataset
     whole_dataset_results = all_training_results["training_by_num_rows"][-1]
     train_avg_mse = sum(x['train_mse']
-                        for x in whole_dataset_results)/config['k-fold']
+                        for x in whole_dataset_results)/config["kfold"]
     test_avg_mse = sum(x['test_mse']
-                       for x in whole_dataset_results)/config['k-fold']
+                       for x in whole_dataset_results)/config["kfold"]
     training_time = sum(x.get('time', 0) for x in whole_dataset_results)
     loss_list = [x.get("loss_over_time") for x in whole_dataset_results]
     train_mse_list = [x.get("train_mse_over_time")

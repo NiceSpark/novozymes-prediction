@@ -126,7 +126,7 @@ def compute_feature_list(config: dict, features_dict: dict):
 def split_dataset(df: pd.DataFrame, config):
     """returns a list of k DataFrames"""
 
-    k = config["k-fold"]
+    k = config["kfold"]
     kfold = KFold(k, shuffle=True)
     min_mutations_per_protein = config["min_mutations_per_protein"]
 

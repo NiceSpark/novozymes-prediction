@@ -1,55 +1,51 @@
 import torch.nn as nn
 
 
-class SimpleNN_1(nn.Module):
-    def __init__(self, num_features: int, hidden_layer_num_parameters=256):
-        super().__init__()
-        self.layers = nn.Sequential(
-            nn.Linear(num_features, hidden_layer_num_parameters),
-            nn.ReLU(),
-            nn.Linear(hidden_layer_num_parameters,
-                      hidden_layer_num_parameters),
-            nn.ReLU(),
-            nn.Linear(hidden_layer_num_parameters,
-                      int(hidden_layer_num_parameters/2)),
-            nn.ReLU(),
-            nn.Linear(int(hidden_layer_num_parameters/2), 1)
-        )
-
-    def forward(self, x):
-        '''
-        Forward pass
-        '''
-        return self.layers(x)
-
-
 class SimpleNN(nn.Module):
-    def __init__(self, num_features: int, model_config: dict):
-        nn_linear_parameters = model_config.get("nn_linear_parameters", 64)
-        num_hidden_layers = model_config.get("num_hidden_layers", 5)
-        with_final_half_layer = model_config.get("with_final_half_layer", True)
-        with_relu = model_config.get("with_relu", True)
-        super().__init__()
+    def __init__(self, num_features: int, config: dict):
+        fc_layer_size = config.get("fc_layer_size", 64)
+        hidden_layers = config.get("hidden_layers", 5)
+        with_final_half_layer = config.get("with_final_half_layer", True)
+        with_relu = config.get("with_relu", True)
+        with_dropout = config.get("with_dropout", True)
+        dropout = config.get("dropout", 0.3)
+        with_softmax = config.get("with_softmax", True)
         modules = []
+
+        super().__init__()
+
         # input layer
-        modules.append(nn.Linear(num_features, nn_linear_parameters))
+        modules.append(nn.Flatten())
+        modules.append(nn.Linear(num_features, fc_layer_size))
         if with_relu:
             modules.append(nn.ReLU())
+        if with_dropout:
+            modules.append(nn.Dropout(dropout))
+
         # hidden layers
-        for _ in range(num_hidden_layers):
+        for _ in range(hidden_layers):
             modules.append(
-                nn.Linear(nn_linear_parameters, nn_linear_parameters))
+                nn.Linear(fc_layer_size, fc_layer_size))
             if with_relu:
                 modules.append(nn.ReLU())
+            if with_dropout:
+                modules.append(nn.Dropout(dropout))
 
         if with_final_half_layer:
-            modules.append(nn.Linear(nn_linear_parameters,
-                                     int(nn_linear_parameters/2)))
+            modules.append(nn.Linear(fc_layer_size,
+                                     int(fc_layer_size/2)))
             if with_relu:
                 modules.append(nn.ReLU())
+            if with_dropout:
+                modules.append(nn.Dropout(dropout))
+            # last layer
+            modules.append(nn.Linear(int(fc_layer_size/2), 1))
+        else:
+            # last layer
+            modules.append(nn.Linear(int(fc_layer_size), 1))
 
-        # last layer
-        modules.append(nn.Linear(int(nn_linear_parameters/2), 1))
+        if with_softmax:
+            modules.append(nn.LogSoftmax(dim=1))
 
         self.layers = nn.Sequential(*modules)
 
