@@ -83,7 +83,7 @@ def run():
 
 
 try:
-    wandb.agent(sweep_id, run)
+    wandb.agent(sweep_id, run, project="nesp_simple_nn")
     wandb.finish()
 except Exception as e:
     print(f"Exception: {e}")
