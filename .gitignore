@@ -27,7 +27,9 @@ compute_mutated_structures/mutations_logs/*
 compute_mutated_structures/mutations*.sh
 compute_mutated_structures/main_*.sh
 compute_mutated_structures/scores_*.sh
+compute_mutated_structures/gends*
 compute_mutated_structures/*.log
+*gends*.sh
 stderr.log
 stdout.log
 **/*.pdb
