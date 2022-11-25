@@ -51,28 +51,37 @@ def add_demask_predictions_by_mutation(df: pd.DataFrame, errors: dict):
             # this is a deletion mutation, no demask score available
             return row
 
-        name = row['uniprot'] + \
-            f"_{row['wild_aa']}{mutation_position}{mutated_aa}"
-        prediction_path = f"./data/main_dataset_creation/DeMaSk_outputs/predictions/{name}.txt"
-        demask_df = pd.read_csv(prediction_path, sep='\t')
+        try:
+            name = row['uniprot'] + \
+                f"_{row['wild_aa']}{mutation_position}{mutated_aa}"
+            prediction_path = f"./data/main_dataset_creation/DeMaSk_outputs/predictions/{name}.txt"
+            demask_df = pd.read_csv(prediction_path, sep='\t')
 
-        # demask index residue starting at 1
-        pos = mutation_position+1
-        prediction = demask_df.loc[demask_df["pos"].eq(
-            pos) & demask_df["WT"].eq(mutated_aa) & demask_df["var"].eq(wild_aa)]
+            # demask index residue starting at 1
+            pos = mutation_position+1
+            prediction = demask_df.loc[demask_df["pos"].eq(
+                pos) & demask_df["WT"].eq(mutated_aa) & demask_df["var"].eq(wild_aa)]
 
-        if len(prediction.index) != 1:
-            # print("error: prediction contains more than one element")
+            if len(prediction.index) != 1:
+                # print("error: prediction contains more than one element")
+                errors.update({row["uniprot"]: {"uniprot": row["uniprot"],
+                                                "wild_aa": wild_aa,
+                                                "mutation_position": row["mutation_position"],
+                                                "pos": pos,
+                                                "mutated_aa": mutated_aa}})
+                return row
+
+            row["indirect_demask_score"] = prediction["score"].iloc[0]
+            row["indirect_demask_entropy"] = prediction["entropy"].iloc[0]
+            row["indirect_demask_log2f_var"] = prediction["log2f_var"].iloc[0]
+            row["indirect_demask_matrix"] = prediction["matrix"].iloc[0]
+        except Exception as e:
             errors.update({row["uniprot"]: {"uniprot": row["uniprot"],
                                             "wild_aa": wild_aa,
                                             "mutation_position": row["mutation_position"],
-                                            "pos": pos,
                                             "mutated_aa": mutated_aa}})
-
-        row["indirect_demask_score"] = prediction["score"].iloc[0]
-        row["indirect_demask_entropy"] = prediction["entropy"].iloc[0]
-        row["indirect_demask_log2f_var"] = prediction["log2f_var"].iloc[0]
-        row["indirect_demask_matrix"] = prediction["matrix"].iloc[0]
+            print(
+                f"Exception raised for {row['uniprot']} {mutation_position} {mutated_aa}: {e}")
         return row
 
     df = df.apply(lambda row: add_infos(row, errors), axis=1)

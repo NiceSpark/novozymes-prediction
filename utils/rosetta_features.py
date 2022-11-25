@@ -42,6 +42,8 @@ def add_rosetta_scores_to_row(row, all_relaxed_scores, all_alphafold_scores):
     pos = int(row["mutation_position"])+1
     mutated_sc_path = (f"./compute_mutated_structures/relaxed_pdb/{name}_relaxed/" +
                        f"{name}_relaxed_{w_aa}{pos}{m_aa}_relaxed.sc")
+    if not os.path.exists(mutated_sc_path):
+        mutated_sc_path = row["relaxed_mutated_3D_path"].replace(".pdb", ".sc")
 
     if alphafold_sc_path in all_alphafold_scores:
         alphafold_scores = open_json(alphafold_sc_path)
