@@ -114,7 +114,7 @@ def k_fold_training(df, global_config, features, features_infos,
         model.to(device)
 
         # Define the loss function and optimizer
-        loss_function = nn.L1Loss()
+        loss_function = nn.MSELoss()
         optimizer = build_optimizer(model, config)
         # Train model:
         t0 = time.time()
