@@ -258,7 +258,7 @@ def prepare_xgboost(df, config, features, train_scaler=StandardScaler, fit_scale
     return X, y
 
 
-def evaluate_model(X: torch.tensor, y: torch.tensor, model, device):
+def evaluate_model(X: torch.Tensor, y: torch.Tensor, model, device):
     """
     evaluate the model
     X and y must be torch tensors
@@ -301,10 +301,6 @@ def predict(row, model, device):
 
 def load_dataset(config, features):
     df = pd.read_csv(f"{config['dataset_dir']}/{config['dataset_name']}.csv")
-
-    for feature in features:
-        # remove line with nan values for selected features
-        df = df[~(df[feature].isna())]
 
     # remove bad uniprot
     df = df[~(df["uniprot"].isin(config["bad_uniprot"]))]

@@ -4,76 +4,90 @@
         "wild_aa": "N",
         "mutation_position": 390.0,
         "mutated_aa": "A",
-        "diff": 22.938267490171476
-    },
-    {
-        "uniprot": "P07445",
-        "wild_aa": "Y",
-        "mutation_position": 15.0,
-        "mutated_aa": "S",
-        "diff": 17.74143710712723
+        "diff": 23.07519966209906
     },
     {
         "uniprot": "P07445",
         "wild_aa": "Y",
         "mutation_position": 31.0,
         "mutated_aa": "S",
-        "diff": 16.813978474991305
+        "diff": 17.038508373447325
+    },
+    {
+        "uniprot": "P07445",
+        "wild_aa": "Y",
+        "mutation_position": 15.0,
+        "mutated_aa": "S",
+        "diff": 16.992659166575088
     },
     {
         "uniprot": "P07445",
         "wild_aa": "Y",
         "mutation_position": 56.0,
         "mutated_aa": "S",
-        "diff": 13.430935305684285
+        "diff": 13.669627327045525
     },
     {
         "uniprot": "P0AA25",
         "wild_aa": "D",
         "mutation_position": 26.0,
         "mutated_aa": "I",
-        "diff": 11.950958366917229
-    },
-    {
-        "uniprot": "P00282",
-        "wild_aa": "H",
-        "mutation_position": 65.0,
-        "mutated_aa": "G",
-        "diff": 10.160396669422036
+        "diff": 11.651623168142827
     },
     {
         "uniprot": "P00282",
         "wild_aa": "H",
         "mutation_position": 136.0,
         "mutated_aa": "G",
-        "diff": 10.108525071671142
+        "diff": 10.766353496004623
+    },
+    {
+        "uniprot": "P00282",
+        "wild_aa": "H",
+        "mutation_position": 65.0,
+        "mutated_aa": "G",
+        "diff": 10.643146710628555
     },
     {
         "uniprot": "P23657",
         "wild_aa": "K",
         "mutation_position": 69.0,
         "mutated_aa": "A",
-        "diff": 11.144584887488351
+        "diff": 10.12977247662907
+    },
+    {
+        "uniprot": "P0AEX9",
+        "wild_aa": "P",
+        "mutation_position": 132.0,
+        "mutated_aa": "A",
+        "diff": 10.10209425576256
     },
     {
         "uniprot": "P00974",
         "wild_aa": "K",
         "mutation_position": 80.0,
         "mutated_aa": "M",
-        "diff": 12.637134172524448
+        "diff": 12.88317004965099
     },
     {
         "uniprot": "P00974",
         "wild_aa": "R",
         "mutation_position": 87.0,
         "mutated_aa": "M",
-        "diff": 12.13392743951813
+        "diff": 12.345970798540462
     },
     {
         "uniprot": "P00974",
         "wild_aa": "E",
         "mutation_position": 83.0,
         "mutated_aa": "M",
-        "diff": 11.20762981543413
+        "diff": 11.279844609427606
+    },
+    {
+        "uniprot": "P00974",
+        "wild_aa": "Y",
+        "mutation_position": 57.0,
+        "mutated_aa": "A",
+        "diff": 10.369947169769413
     }
 ]
