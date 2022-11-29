@@ -1,44 +1,18 @@
-import numpy as np
-import pandas as pd
 import random
 import torch
-from sklearn.preprocessing import StandardScaler, PolynomialFeatures
-from sklearn.model_selection import KFold
+import shutil
+import numpy as np
+import pandas as pd
+from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import mean_squared_error
 from torch.utils.data import Dataset
-from pickle import dump, load
+from pickle import load
 from glob import glob
 
 from .file_utils import open_json
 
 
-class Row_Selector():
-    """
-    We want to be able to choose btw:
-    - each protein is seen the same amount of time
-    [OR]
-    - each mutation, independantly from the protein, is seen the same amount of time
-    """
-
-    def __init__(self, df: pd.DataFrame, select_by_protein=False):
-        self.select_by_protein = select_by_protein
-        if self.select_by_protein:
-            self.protein_index = df.protein_index.unique()
-            self.protein_index_to_row_index = {
-                _p: df[df.protein_index.eq(_p)].index for _p in self.protein_index}
-
-    def get_index(self, i):
-        if self.select_by_protein:
-            # each protein is seen the same amount of time
-            k = random.choice(self.protein_index)  # choose a random protein
-            # choose a random mutation of this protein
-            return random.choice(self.protein_index_to_row_index[k])
-        else:
-            # each mutation, independantly from the protein, is seen the same amount of time
-            return i
-
-
-class Novozymes_Dataset(Dataset):
+class Hybrid_Dataset(Dataset):
     """
     Prepare the Novozymes dataset for regression
     we can give it a reverse_mutation_probability:
@@ -46,45 +20,60 @@ class Novozymes_Dataset(Dataset):
     ie. mutated -> wild instead of wild-> mutated
     """
 
-    def __init__(self, X: pd.DataFrame, y: pd.DataFrame, row_selector: Row_Selector,
-                 features_infos: dict, reverse_probability: float, scale_data=True):
+    def __init__(self, X: pd.DataFrame, y: np.ndarray,
+                 features_infos: dict, reverse_probability: float, use_double=False):
 
         self.scaler = StandardScaler()
         if not torch.is_tensor(X) and not torch.is_tensor(y):
-            # Apply scaling if necessary
-            if scale_data:
-                X = self.scaler.fit_transform(X)
-            self.X = X
+            # voxel features:
+            self.X_voxel_features = X.pop("direct_voxel_features").to_numpy()
+            # Apply scaling, X now contains all columns except voxel features
+            self.X_features = self.scaler.fit_transform(X)
+            # y stays y
             self.y = y
-            self.row_selector = row_selector
 
+            self.used_torch_type = torch.double if use_double else torch.float
             self.reverse_probability = reverse_probability
             self.reverse_coef = features_infos["reverse_coef"]
             self.direct_features = features_infos["direct_features"]
             self.indirect_features = features_infos["indirect_features"]
 
     def __len__(self):
-        return len(self.X)
+        return len(self.X_features)
 
     def __getitem__(self, i):
-        index = self.row_selector.get_index(i)
 
         if random.random() > self.reverse_probability:
             # direct mutation
-            x_data = self.X[index][self.direct_features]
-            y_data = self.y[index]
+            if (type(self.X_voxel_features[i]) == type(0.0)
+                    and self.X_voxel_features[i] == 0):
+                x_voxel_features = torch.Tensor()
+            else:
+                x_voxel_features = torch.stack([torch.as_tensor(x, dtype=self.used_torch_type)
+                                                for x in self.X_voxel_features[i]])
+            x_features = torch.as_tensor(
+                self.X_features[i][self.direct_features], dtype=self.used_torch_type)
+            y = torch.as_tensor(self.y[i], dtype=self.used_torch_type)
         else:
             # indirect mutation, we need to reverse the delta features
-            all_features = self.X[index]
+            all_features = self.X_features[i]
             reverse = np.multiply(all_features, np.array(self.reverse_coef))
-            x_data = reverse[self.indirect_features]
+            x_features = reverse[self.indirect_features]
+            # we also need to reverse the voxel feature
+            # TODO: check that
+            x_voxel_features = np.concatenate(
+                [self.X_voxel_features[i][7:], self.X_voxel_features[i][:7]], axis=0)
             # we also reverse the target
-            y_data = -1*self.y[index]
+            y = -1*self.y[i]
 
-        x_data = torch.from_numpy(x_data)
-        y_data = torch.from_numpy(y_data)
+            # to torch tensor
+            x_features = torch.as_tensor(
+                x_features, dtype=self.used_torch_type)
+            x_voxel_features = torch.stack([torch.as_tensor(x, dtype=self.used_torch_type)
+                                            for x in x_voxel_features])
+            y = torch.as_tensor(y, dtype=self.used_torch_type)
 
-        return x_data, y_data
+        return x_voxel_features, x_features, y
 
 
 def compute_feature_list(config: dict, features_dict: dict):
@@ -136,73 +125,25 @@ def split_dataset(df: pd.DataFrame, config):
     return df
 
 
-def PolynomialFeatures_labeled(input_df, power):
-    '''Basically this is a cover for the sklearn preprocessing function.
-    The problem with that function is if you give it a labeled dataframe, it ouputs an unlabeled dataframe with potentially
-    a whole bunch of unlabeled columns.
-    Inputs:
-    input_df = Your labeled pandas dataframe (list of x's not raised to any power)
-    power = what order polynomial you want variables up to. (use the same power as you want entered into pp.PolynomialFeatures(power) directly)
-    if power == 1, simply return input_df unchanged
-
-    Output: This function relies on the powers_ matrix which is one of the preprocessing function's outputs to create logical labels and
-    outputs a labeled pandas dataframe
-    '''
-
-    if power == 1:
-        return input_df
-
-    poly = PolynomialFeatures(power)
-    output_nparray = poly.fit_transform(input_df)
-    powers_nparray = poly.powers_
-
-    input_feature_names = list(input_df.columns)
-    target_feature_names = ["Constant Term"]
-    for feature_distillation in powers_nparray[1:]:
-        intermediary_label = ""
-        final_label = ""
-        for i in range(len(input_feature_names)):
-            if feature_distillation[i] == 0:
-                continue
-            else:
-                variable = input_feature_names[i]
-                power = feature_distillation[i]
-                intermediary_label = "%s^%d" % (variable, power)
-                if final_label == "":  # If the final label isn't yet specified
-                    final_label = intermediary_label
-                else:
-                    final_label = final_label + " x " + intermediary_label
-        target_feature_names.append(final_label)
-    output_df = pd.DataFrame(output_nparray, columns=target_feature_names)
-    output_df.drop(columns=["Constant Term"], inplace=True)
-    return output_df
-
-
 def prepare_train_data(df: pd.DataFrame, config: dict,
                        features: list, features_infos: dict):
     """
     prepare the dataset
     NB: We do not split the data into train/test here, see split_dataset function
     """
+    used_type = np.float64 if config["use_double"] else np.float32
+
     # 1. get the target
     target = config["target"]
 
     # 2. create X,y:
-    X_train = PolynomialFeatures_labeled(
-        df[features], config["polynomial_features_power"])
-    y_train = df[[target]].values.astype(float)
+    X_train = df[["direct_voxel_features"] + features]
+    y_train = df[[target]].values.astype(used_type)
 
-    if (X_train.isna().sum().sum() > 0 or np.isnan(y_train).sum() > 0):
-        print(
-            f"ERROR: there are {X_train.isna().sum().sum()} na occurences in the X_train df")
-        print(
-            f"ERROR: there are {np.isnan(y_train).sum()} na occurences in the y_train df")
-
-    # 3. create the row_selector object
-    row_selector = Row_Selector(df, config["select_by_protein"])
-    # 4. load the dataset
-    dataset = Novozymes_Dataset(X_train, y_train, row_selector,
-                                features_infos, reverse_probability=config["reverse_probability"])
+    # 3. load the dataset
+    dataset = Hybrid_Dataset(X_train, y_train, features_infos,
+                             reverse_probability=config["reverse_probability"],
+                             use_double=config["use_double"])
 
     return dataset
 
@@ -211,59 +152,36 @@ def prepare_eval_data(df: pd.DataFrame, config: dict, features: list, features_i
     """
     prepare the dataset for testing only
     """
+    used_type = np.float64 if config["use_double"] else np.float32
+    used_torch_type = torch.double if config["use_double"] else torch.float
+
     # 1. get the target
     target = config["target"]
 
-    # 2. create X,y:
-    X_eval = PolynomialFeatures_labeled(
-        df[features], config["polynomial_features_power"])
+    # 2. create X_voxel_features, X_features, y:
+    X_voxel_features = df["direct_voxel_features"].to_numpy()
+    X_voxel_features = torch.stack([torch.as_tensor(x, dtype=used_torch_type)
+                                    for x in X_voxel_features])
 
-    y_eval = df[[target]].values.astype(float)
-    X_eval = train_scaler.transform(X_eval)
+    X_features = df[features]
+    X_features = train_scaler.transform(X_features)
+    X_features = torch.from_numpy(X_features)
+    X_features = X_features[:, features_infos["direct_features"]]
+    X_features = torch.as_tensor(X_features, dtype=used_torch_type)
 
-    if (np.isnan(X_eval).sum() > 0 or np.isnan(y_eval).sum() > 0):
-        print(
-            f"ERROR: there are {np.isnan(X_eval).sum()} na occurences in the X_eval df")
-        print(
-            f"ERROR: there are {np.isnan(y_eval).sum()} na occurences in the y_eval df")
-    X_eval = torch.from_numpy(X_eval)
-    X_eval = X_eval[:, features_infos["direct_features"]]
-    y_eval = torch.from_numpy(y_eval)
+    y = df[[target]].values.astype(used_type)
+    y = torch.as_tensor(y, dtype=used_torch_type)
 
-    return X_eval, y_eval
+    return X_voxel_features, X_features, y
 
 
-def prepare_xgboost(df, config, features, train_scaler=StandardScaler, fit_scaler=False):
-    """
-    prepare the dataset for testing only
-    """
-    # 1. get the target
-    target = config["target"]
-
-    # 2. create X,y:
-    X = PolynomialFeatures_labeled(
-        df[features], config["polynomial_features_power"])
-
-    y = df[[target]].values.astype(float)
-    if fit_scaler:
-        train_scaler.fit(X)
-    X = train_scaler.transform(X)
-
-    if (np.isnan(X).sum() > 0 or np.isnan(y).sum() > 0):
-        print(
-            f"ERROR: there are {np.isnan(X).sum()} na occurences in the X df")
-        print(
-            f"ERROR: there are {np.isnan(y).sum()} na occurences in the y df")
-
-    return X, y
-
-
-def evaluate_model(X: torch.Tensor, y: torch.Tensor, model, device):
+def evaluate_model(X_voxel_features: torch.Tensor, X_features: torch.Tensor,
+                   y: torch.Tensor, model, device):
     """
     evaluate the model
     X and y must be torch tensors
     """
-    y_pred = model(X.to(device))
+    y_pred = model(X_voxel_features.to(device), X_features.to(device))
     y_pred = y_pred.cpu().detach().numpy()
     y_pred = np.vstack(y_pred)
 
@@ -272,7 +190,7 @@ def evaluate_model(X: torch.Tensor, y: torch.Tensor, model, device):
 
     # compute MSE
     mse = mean_squared_error(y_true, y_pred)
-
+    mse = mse.astype(np.float64)
     # compute worst results
     diff = np.abs(np.diff(np.array([y_true, y_pred]), axis=0))[0]
 
@@ -286,17 +204,6 @@ def get_worst_samples(df_test, test_diff, config):
     worst_samples = uniprot_df_test.nlargest(
         config["num_worst_samples"], ["diff"]).to_dict("records")
     return worst_samples
-
-
-def predict(row, model, device):
-    """make a class prediction for one row of data"""
-    # convert row to data
-    row = torch.tensor([row])
-    # make prediction
-    yhat = model(row)
-    # retrieve numpy array
-    yhat = yhat.detach().numpy()
-    return yhat
 
 
 def load_dataset(config, features, rm_nan=False):
@@ -314,23 +221,43 @@ def load_dataset(config, features, rm_nan=False):
     # apply max protein length
     df = df[df.length.le(config["max_protein_length"])]
 
-    print(f"training on {len(df)} data")
+    if config["model_type"] in ["hybrid", "cnn_only"]:
+        # load voxel features
+        df["direct_voxel_path"] = df["direct_voxel_path"].apply(
+            lambda row: row.replace("./",
+                                    "../compute_mutated_structures/")+".npy")
+        df["direct_voxel_features"] = df["direct_voxel_path"].apply(np.load)
+    else:
+        df["direct_voxel_features"] = 0.0
+
+    print(f"loaded {len(df)} data")
     return df
 
 
-def save_models_and_scalers(dir_path: str, model_list: list, scaler_list: list):
-    for i, model in enumerate(model_list):
-        torch.save(model, f"{dir_path}/model_{i}.pth")
-    for i, scaler in enumerate(scaler_list):
-        dump(scaler, open(f"{dir_path}/scaler_{i}.pkl", "wb"))
+def move_models_and_scalers(dir_path: str):
+    # we save models and scalers during training in tmp/,
+    # we now need to move them to the appropriated folder
+    for model_tmp_path in glob("tmp/model*.pth"):
+        shutil.move(model_tmp_path, f"{dir_path}/")
+    for scaler_tmp_path in glob("tmp/scaler*.pkl"):
+        shutil.move(scaler_tmp_path, f"{dir_path}/")
 
 
 def load_models_and_scalers(dir_path: str):
     model_list, scaler_list = [], []
 
-    for model_path in glob(f"{dir_path}/model_*.pth"):
-        model_list.append(torch.load(model_path))
-    for scaler_path in glob(f"{dir_path}/scaler_*.pkl"):
-        scaler_list.append(load(open(scaler_path, 'rb')))
+    for k in range(len(glob(f"{dir_path}/model_*.pth"))):
+        model_list.append(torch.load(f"{dir_path}/model_{k}.pth"))
+    for k in range(len(glob(f"{dir_path}/scaler_*.pkl"))):
+        scaler_list.append(load(open(f"{dir_path}/scaler_{k}.pkl", 'rb')))
 
     return model_list, scaler_list
+
+
+def get_device(config):
+    if torch.cuda.is_available() and config["use_cuda"]:
+        device = torch.device("cuda")
+    else:
+        device = torch.device("cpu")
+    print(device)
+    return device

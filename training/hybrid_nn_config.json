@@ -1,35 +1,38 @@
 {
     "dataset_dir": "../data/main_dataset_creation/outputs/all_v3",
-    "dataset_name": "dataset_with_all_features",
-    "use_cuda": false,
+    "dataset_name": "dataset_with_voxel",
+    "features_name": "features_handpicked",
+    "model_type": "hybrid",
+    "use_cuda": true,
     "num_epochs": 30,
     "batch_size": 1024,
-    "fc_layer_size": 64,
-    "hidden_layers": 1,
-    "with_final_half_layer": false,
-    "with_relu": true,
     "num_workers": 12,
-    "with_softmax": false,
-    "dropout": 0.25,
-    "optimizer": "adam",
+    "optimizer": "adamw",
     "learning_rate": 0.001,
+    "diff_features": true,
+    "AdamW_decay": 1.4,
+    "cnn_dropout": 0.15,
+    "cnn_dense_layer_size": 64,
+    "cnn_layer_num": 5,
+    "regression_dropout": 0.35,
+    "regression_fc_layer_size": 128,
+    "regression_hidden_layers": 1,
+    "with_final_half_layer": true,
+    "with_relu": true,
     "max_protein_length": 600,
     "shuffle_dataloader": true,
     "reverse_probability": 0,
     "target": "ddG",
+    "use_double": false,
     "kfold": 5,
     "ksplit_path": "./ksplit/shuffled_4_fixed_ksplit.json",
     "select_by_protein": false,
-    "polynomial_features_power": 1,
     "num_worst_samples": 10,
     "bad_uniprot": [
-        "P02751",
-        "P07445",
         "O61594",
+        "P07445",
         "P00974",
-        "Q9H334",
-        "P0AA25",
-        "P24821"
+        "P0AA25"
     ],
     "destabilizing_only": true,
     "features_config": {
@@ -47,19 +50,19 @@
         },
         "direct_demask": {
             "use": true,
-            "category": "direct"
+            "category": "global"
         },
         "indirect_demask": {
             "use": true,
-            "category": "indirect"
+            "category": "global"
         },
         "wild_protein_analysis": {
-            "use": false,
-            "category": "direct"
+            "use": true,
+            "category": "global"
         },
         "mutated_protein_analysis": {
-            "use": false,
-            "category": "indirect"
+            "use": true,
+            "category": "global"
         },
         "mutation_protein_analysis": {
             "use": true,
@@ -71,14 +74,14 @@
         },
         "wild_relaxed_3D_structure_analysis": {
             "use": false,
-            "category": "direct"
+            "category": "global"
         },
         "mutated_relaxed_3D_structure_analysis": {
             "use": false,
-            "category": "indirect"
+            "category": "global"
         },
         "mutation_3D_structure_analysis": {
-            "use": true,
+            "use": false,
             "category": "delta"
         },
         "alphafold_dssp_3D_analysis": {
@@ -86,12 +89,12 @@
             "category": "global"
         },
         "wild_relaxed_dssp_3D_analysis": {
-            "use": false,
-            "category": "direct"
+            "use": true,
+            "category": "global"
         },
         "mutated_relaxed_dssp_3D_analysis": {
-            "use": false,
-            "category": "indirect"
+            "use": true,
+            "category": "global"
         },
         "mutation_dssp_3D_analysis": {
             "use": true,
@@ -102,32 +105,32 @@
             "category": "global"
         },
         "esm_pca_wild": {
-            "use": false,
-            "category": "direct"
+            "use": true,
+            "category": "global"
         },
         "esm_pca_mutant": {
             "use": false,
-            "category": "indirect"
+            "category": "global"
         },
         "esm_pca_local": {
             "use": true,
             "category": "delta"
         },
         "esm_global": {
-            "use": true,
+            "use": false,
             "category": "global"
         },
         "alphafold_rosetta_scores": {
-            "use": false,
+            "use": true,
             "category": "global"
         },
         "wild_relaxed_rosetta_scores": {
-            "use": false,
-            "category": "direct"
+            "use": true,
+            "category": "global"
         },
         "mutated_relaxed_rosetta_scores": {
-            "use": false,
-            "category": "indirect"
+            "use": true,
+            "category": "global"
         },
         "mutation_rosetta_scores": {
             "use": true,
