@@ -299,11 +299,17 @@ def predict(row, model, device):
     return yhat
 
 
-def load_dataset(config, features):
+def load_dataset(config, features, rm_nan=False):
     df = pd.read_csv(f"{config['dataset_dir']}/{config['dataset_name']}.csv")
 
     # remove bad uniprot
     df = df[~(df["uniprot"].isin(config["bad_uniprot"]))]
+
+    if rm_nan:
+        for feature in features:
+            df = df[~(df[feature].isna())]
+    if config["destabilizing_only"]:
+        df = df[(df.ddG <= 0)]
 
     # apply max protein length
     df = df[df.length.le(config["max_protein_length"])]

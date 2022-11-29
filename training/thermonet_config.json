@@ -11,7 +11,16 @@
     "target": "ddG",
     "kfold": 5,
     "ksplit_path": "./ksplit/shuffled_4_fixed_ksplit.json",
-    "bad_uniprot": [],
+    "destabilizing_only": true,
+    "bad_uniprot": [
+        "P02751",
+        "P07445",
+        "O61594",
+        "P00974",
+        "Q9H334",
+        "P0AA25",
+        "P24821"
+    ],
     "diff_features": true,
     "AdamW_decay": 1.4,
     "dropout_rate": 0.063,
