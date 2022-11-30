@@ -5,61 +5,66 @@
         "goal": "minimize"
     },
     "parameters": {
-        "optimizer": {
-            "values": [
-                "adam",
-                "sgd"
-            ]
+        "model_type": {
+            "value": "hybrid"
         },
-        "learning_rate": {
-            "values": [
-                1e-3,
-                1e-4
-            ]
+        "num_epochs": {
+            "value": 30
         },
-        "fc_layer_size": {
-            "values": [
-                64,
-                128,
-                192,
-                256
-            ]
+        "batch_size": {
+            "value": 1024
         },
-        "hidden_layers": {
-            "values": [
-                1,
-                3,
-                5,
-                7
-            ]
+        "cnn_dropout": {
+            "value": 0.065
         },
-        "with_final_half_layer": {
-            "values": [
-                false,
-                true
-            ]
+        "cnn_dense_layer_size": {
+            "value": 74
         },
-        "with_relu": {
-            "values": [
-                false,
-                true
-            ]
+        "cnn_layer_num": {
+            "value": 5
         },
-        "with_softmax": {
-            "value": false
-        },
-        "dropout": {
+        "regression_dropout": {
             "values": [
                 0,
                 0.25,
                 0.5
             ]
         },
-        "batch_size": {
-            "value": 1024
+        "regression_fc_layer_size": {
+            "values": [
+                64,
+                128,
+                256,
+                512
+            ]
         },
-        "num_epochs": {
-            "value": 50
+        "regression_hidden_layers": {
+            "values": [
+                1,
+                3,
+                5
+            ]
+        },
+        "with_final_half_layer": {
+            "value": true
+        },
+        "with_relu": {
+            "value": true
+        },
+        "learning_rate": {
+            "value": 0.001
+        },
+        "optimizer": {
+            "value": "adamw"
+        },
+        "AdamW_decay": {
+            "value": 1.4
+        },
+        "scheduler_gamma": {
+            "value": 1
+        },
+        "voxel_features_difference": {
+            "value": true
         },
         "max_protein_length": {
             "value": 600
@@ -67,14 +72,11 @@
         "reverse_probability": {
             "value": 0
         },
-        "select_by_protein": {
-            "value": false
-        },
-        "polynomial_features_power": {
-            "value": 1
-        },
         "shuffle_dataloader": {
             "value": true
+        },
+        "use_double": {
+            "value": false
         },
         "target": {
             "value": "ddG"
