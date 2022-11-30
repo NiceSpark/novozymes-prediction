@@ -1,10 +1,12 @@
 import random
 import torch
 import shutil
+import os
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import mean_squared_error
+from sklearn.model_selection import KFold
 from torch.utils.data import Dataset
 from pickle import load
 from glob import glob
@@ -118,9 +120,25 @@ def compute_feature_list(config: dict, features_dict: dict):
 
 def split_dataset(df: pd.DataFrame, config):
     """adds the kfold group to each row, based on the fixed_ksplit from the config"""
-    fixed_ksplit = open_json(config["ksplit_path"])
-    df["kfold"] = df["alphafold_path"].apply(
-        lambda x: fixed_ksplit[x])
+    if os.path.exists(config["ksplit_path"]):
+        fixed_ksplit = open_json(config["ksplit_path"])
+        df["kfold"] = df["alphafold_path"].apply(
+            lambda x: fixed_ksplit[x])
+    else:
+        print("no valid ksplit path given, doing ksplit without groups")
+        df.reset_index(drop=True, inplace=True)
+        k = 5
+        kfold = KFold(k, shuffle=True)
+        split = list(kfold.split(range(len(df))))
+
+        def get_fold_id(i, split):
+            for k in range(len(split)):
+                if i in split[k][1]:
+                    return k
+            return np.nan
+
+        df["kfold"] = df.apply(
+            lambda row: get_fold_id(row.name, split), axis=1)
 
     return df
 
@@ -148,7 +166,9 @@ def prepare_train_data(df: pd.DataFrame, config: dict,
     return dataset
 
 
-def prepare_eval_data(df: pd.DataFrame, config: dict, features: list, features_infos: dict, train_scaler: StandardScaler):
+def prepare_eval_data(df: pd.DataFrame, config: dict, features: list,
+                      features_infos: dict, train_scaler: StandardScaler,
+                      submission=False):
     """
     prepare the dataset for testing only
     """
@@ -169,8 +189,11 @@ def prepare_eval_data(df: pd.DataFrame, config: dict, features: list, features_i
     X_features = X_features[:, features_infos["direct_features"]]
     X_features = torch.as_tensor(X_features, dtype=used_torch_type)
 
-    y = df[[target]].values.astype(used_type)
-    y = torch.as_tensor(y, dtype=used_torch_type)
+    if submission:
+        y = np.nan
+    else:
+        y = df[[target]].values.astype(used_type)
+        y = torch.as_tensor(y, dtype=used_torch_type)
 
     return X_voxel_features, X_features, y
 
@@ -215,8 +238,10 @@ def load_dataset(config, features, rm_nan=False):
     if rm_nan:
         for feature in features:
             df = df[~(df[feature].isna())]
-    if config["destabilizing_only"]:
-        df = df[(df.ddG <= 0)]
+
+    # keep only mutations with adequate ddG value
+    # usually mutations are destabilizing, so we guess in the submission dataset they are
+        df = df[(df.ddG <= config.get("max_ddG_value", 0))]
 
     # apply max protein length
     df = df[df.length.le(config["max_protein_length"])]
