@@ -14,12 +14,14 @@ from .model_utils import *
 
 
 def train_model(model: nn.Module, config: dict,
-                optimizer, loss_function, trainloader, device,
+                optimizer, scheduler, loss_function,
+                trainloader, device,
                 X_test_voxel, X_test_features, y_test):
 
     loss_over_time = []
     train_mse_over_time = []
     test_mse_over_time = []
+    learning_rates = []
 
     # Run the training loop
     for epoch in range(config["num_epochs"]):
@@ -52,12 +54,16 @@ def train_model(model: nn.Module, config: dict,
             optimizer.step()
 
             # compute statistics
+
             current_mse += mean_squared_error(
                 targets.cpu().detach().numpy(), outputs.cpu().detach().numpy())
             current_loss += loss.item()
 
+        learning_rates.append(optimizer.param_groups[0]["lr"])
         loss_over_time.append(current_loss/(i+1))
         train_mse_over_time.append(current_mse/(i+1))
+
+        scheduler.step()
 
         model.eval()
         with torch.set_grad_enabled(False):
@@ -65,7 +71,14 @@ def train_model(model: nn.Module, config: dict,
                 X_test_voxel, X_test_features, y_test, model, device)
             test_mse_over_time.append(test_mse)
 
-    return model, loss_over_time, train_mse_over_time, test_mse_over_time
+    results = {
+        "loss_over_time": loss_over_time,
+        "train_mse_over_time": train_mse_over_time,
+        "test_mse_over_time": test_mse_over_time,
+        "learning_rate_over_time": learning_rates,
+    }
+
+    return model, results
 
 
 def build_optimizer(model, config):
@@ -91,6 +104,15 @@ def build_optimizer(model, config):
         optimizer = torch.optim.Adam(model.parameters(),
                                      lr=config["learning_rate"])
     return optimizer
+
+
+def build_scheduler(optimizer, config):
+    scheduler = torch.optim.lr_scheduler.MultiStepLR(
+        optimizer,
+        milestones=config.get("scheduler_milestones", [20, 30, 40]),
+        gamma=config.get("scheduler_gamma", 0.5)
+    )
+    return scheduler
 
 
 def k_fold_training(df, global_config, features, features_infos,
@@ -133,13 +155,14 @@ def k_fold_training(df, global_config, features, features_infos,
         model.to(used_torch_type)
         model.to(device)
 
-        # Define the loss function and optimizer
+        # Define the loss function, optimizer and scheduler
         loss_function = nn.MSELoss()
         optimizer = build_optimizer(model, config)
+        scheduler = build_scheduler(optimizer, config)
         # Train model:
         t0 = time.time()
-        model, loss_over_time, train_mse_over_time, test_mse_over_time = train_model(
-            model, config, optimizer, loss_function,
+        model, results_by_epochs = train_model(
+            model, config, optimizer, scheduler, loss_function,
             trainloader, device, X_test_voxel, X_test_features, y_test)
 
         t1 = time.time()-t0
@@ -156,16 +179,13 @@ def k_fold_training(df, global_config, features, features_infos,
                 df_test, test_diff, global_config)
 
             # print(f"MSE obtained for k-fold {k}: {mse}")
-
-            results = {
-                "loss_over_time": loss_over_time,
-                "train_mse_over_time": train_mse_over_time,
-                "test_mse_over_time": test_mse_over_time,
+            results = results_by_epochs
+            results.update({
                 "worst_samples": worst_samples,
                 "train_mse": train_mse,
                 "test_mse": test_mse,
                 "time": t1
-            }
+            })
             training_results.append(results)
 
         if keep_models:

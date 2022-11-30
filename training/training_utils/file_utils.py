@@ -66,6 +66,8 @@ def log_kfold_training(name, results, config, features, model_structure):
                        for x in simple_train_results)/config["kfold"]
     training_time = sum(x.get('time', 0) for x in simple_train_results)
     loss_list = [x.get("loss_over_time") for x in simple_train_results]
+    learning_rate_list = [x.get("learning_rate_over_time")
+                          for x in simple_train_results]
     train_mse_list = [x.get("train_mse_over_time")
                       for x in simple_train_results]
     test_mse_list = [x.get("test_mse_over_time")
@@ -80,12 +82,17 @@ def log_kfold_training(name, results, config, features, model_structure):
         plt.suptitle(
             f"{train_avg_mse= :.2f}, {test_avg_mse= :.2f}, {training_time= :.2f}")
 
-        plt.subplot(1, 2, 1)
+        plt.subplot(1, 3, 1)
+        plt.title("learning rate over time")
+        for i, lr in enumerate(learning_rate_list):
+            plt.plot(lr, colors[i], label=f"learning_rate_{i}")
+
+        plt.subplot(1, 3, 2)
         plt.title("train mse over time")
         for i, train_mse in enumerate(train_mse_list):
             plt.plot(train_mse, colors[i], label=f"train_mse_{i}")
 
-        plt.subplot(1, 2, 2)
+        plt.subplot(1, 3, 3)
         plt.title("test mse over time")
         for i, test_mse in enumerate(test_mse_list):
             plt.plot(test_mse, colors[i], label=f"test_mse_{i}")
