@@ -89,7 +89,7 @@ class ThermoNet2(nn.Module):
         )
 
     def forward(self, x):
-        if self.config["diff_features"]:
+        if self.config["voxel_features_difference"]:
             x[:, 7:, ...] -= x[:, :7, ...]
         x = self.model(x)
         ddg = self.ddG(x)
@@ -99,7 +99,7 @@ class ThermoNet2(nn.Module):
 class HybridNN(nn.Module):
     def __init__(self, num_features: int, config):
         super().__init__()
-        self.diff_features = config["diff_features"]
+        self.voxel_features_difference = config["voxel_features_difference"]
         self.model_type = config["model_type"]
 
         # get parameters
@@ -190,7 +190,7 @@ class HybridNN(nn.Module):
 
         # 1. if we are using the cnn part of the model we apply the cnn to the voxels
         if self.model_type in ["hybrid", "cnn_only"]:
-            if self.diff_features:
+            if self.voxel_features_difference:
                 voxel_features[:, 7:, ...] -= voxel_features[:, :7, ...]
             cnn_result = self.cnn_model(voxel_features)
 
