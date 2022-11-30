@@ -190,7 +190,7 @@ def prepare_eval_data(df: pd.DataFrame, config: dict, features: list,
     X_features = torch.as_tensor(X_features, dtype=used_torch_type)
 
     if submission:
-        y = np.nan
+        y = torch.as_tensor([np.nan]*len(X_features), dtype=used_torch_type)
     else:
         y = df[[target]].values.astype(used_type)
         y = torch.as_tensor(y, dtype=used_torch_type)

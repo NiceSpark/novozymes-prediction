@@ -4,37 +4,39 @@
     "features_name": "features_handpicked",
     "model_type": "hybrid",
     "use_cuda": true,
-    "num_epochs": 30,
-    "batch_size": 1024,
     "num_workers": 12,
-    "optimizer": "adamw",
-    "learning_rate": 0.001,
-    "diff_features": true,
-    "AdamW_decay": 1.4,
-    "cnn_dropout": 0.15,
-    "cnn_dense_layer_size": 64,
+    "num_epochs": 20,
+    "stop_train_epochs": 20,
+    "batch_size": 1024,
+    "cnn_dropout": 0.065,
+    "cnn_dense_layer_size": 74,
     "cnn_layer_num": 5,
-    "regression_dropout": 0.35,
-    "regression_fc_layer_size": 128,
-    "regression_hidden_layers": 1,
+    "regression_dropout": 0.125,
+    "regression_fc_layer_size": 640,
+    "regression_hidden_layers": 3,
     "with_final_half_layer": true,
     "with_relu": true,
-    "max_protein_length": 600,
-    "shuffle_dataloader": true,
-    "reverse_probability": 0,
-    "target": "ddG",
-    "use_double": false,
-    "kfold": 5,
-    "ksplit_path": "./ksplit/shuffled_4_fixed_ksplit.json",
-    "select_by_protein": false,
-    "num_worst_samples": 10,
-    "bad_uniprot": [
-        "O61594",
-        "P07445",
-        "P00974",
-        "P0AA25"
+    "learning_rate": 0.001,
+    "optimizer": "adamw",
+    "AdamW_decay": 1.4,
+    "scheduler_gamma": 1,
+    "scheduler_milestones": [
+        20,
+        30,
+        40
     ],
-    "destabilizing_only": true,
+    "voxel_features_difference": true,
+    "max_protein_length": 600,
+    "reverse_probability": 0,
+    "shuffle_dataloader": true,
+    "use_double": false,
+    "target": "ddG",
+    "kfold": 5,
+    "group_kfold": false,
+    "ksplit_path": "",
+    "num_worst_samples": 10,
+    "bad_uniprot": [],
+    "max_ddG_value": 0,
     "features_config": {
         "identification": {
             "use": false,
@@ -73,15 +75,15 @@
             "category": "global"
         },
         "wild_relaxed_3D_structure_analysis": {
-            "use": false,
+            "use": true,
             "category": "global"
         },
         "mutated_relaxed_3D_structure_analysis": {
-            "use": false,
+            "use": true,
             "category": "global"
         },
         "mutation_3D_structure_analysis": {
-            "use": false,
+            "use": true,
             "category": "delta"
         },
         "alphafold_dssp_3D_analysis": {
@@ -109,7 +111,7 @@
             "category": "global"
         },
         "esm_pca_mutant": {
-            "use": false,
+            "use": true,
             "category": "global"
         },
         "esm_pca_local": {
@@ -117,7 +119,7 @@
             "category": "delta"
         },
         "esm_global": {
-            "use": false,
+            "use": true,
             "category": "global"
         },
         "alphafold_rosetta_scores": {

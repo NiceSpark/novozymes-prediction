@@ -60,10 +60,11 @@ def log_kfold_training(name, results, config, features, model_structure):
 
     # plot loss/mse over time for training on whole dataset
     simple_train_results = results["simple_train"]
-    train_avg_mse = sum(x['train_mse']
-                        for x in simple_train_results)/config["kfold"]
-    test_avg_mse = sum(x['test_mse']
-                       for x in simple_train_results)/config["kfold"]
+
+    best_epoch_avg = sum(x['best_epoch']
+                         for x in simple_train_results)/config["kfold"]
+    best_test_mse_avg = sum(x['best_test_mse']
+                            for x in simple_train_results)/config["kfold"]
     training_time = sum(x.get('time', 0) for x in simple_train_results)
     loss_list = [x.get("loss_over_time") for x in simple_train_results]
     learning_rate_list = [x.get("learning_rate_over_time")
@@ -80,7 +81,7 @@ def log_kfold_training(name, results, config, features, model_structure):
         plt.title(
             f"Training Results on {config['dataset_name']} for {name}_{dir_num}")
         plt.suptitle(
-            f"{train_avg_mse= :.2f}, {test_avg_mse= :.2f}, {training_time= :.2f}")
+            f"{best_test_mse_avg= :.2f}, {best_epoch_avg= :.2f}, {training_time= :.2f}")
 
         plt.subplot(1, 3, 1)
         plt.title("learning rate over time")

@@ -17,11 +17,20 @@ def train_model(model: nn.Module, config: dict,
                 optimizer, scheduler, loss_function,
                 trainloader, device,
                 X_test_voxel, X_test_features, y_test):
+    """
+    train the model
+    we update some stastistic data over each epoch
+    we also keep the best model (as a function of epoch)
+    and we stop training short after a certain number of epochs
+    """
 
     loss_over_time = []
     train_mse_over_time = []
     test_mse_over_time = []
     learning_rates = []
+    best_test_mse = np.inf
+    best_epoch = 0
+    best_model = copy.deepcopy(model)
 
     # Run the training loop
     for epoch in range(config["num_epochs"]):
@@ -71,14 +80,24 @@ def train_model(model: nn.Module, config: dict,
                 X_test_voxel, X_test_features, y_test, model, device)
             test_mse_over_time.append(test_mse)
 
+        if test_mse < best_test_mse:
+            best_test_mse = test_mse
+            best_epoch = epoch
+            best_model = copy.deepcopy(model)
+            if epoch - best_epoch > config["stop_train_epochs"]:
+                print('Early stopping')
+                break
+
     results = {
         "loss_over_time": loss_over_time,
         "train_mse_over_time": train_mse_over_time,
         "test_mse_over_time": test_mse_over_time,
         "learning_rate_over_time": learning_rates,
+        "best_epoch": best_epoch,
+        "best_test_mse": best_test_mse,
     }
 
-    return model, results
+    return best_model, results
 
 
 def build_optimizer(model, config):
@@ -115,22 +134,21 @@ def build_scheduler(optimizer, config):
     return scheduler
 
 
-def k_fold_training(df, global_config, features, features_infos,
+def k_fold_training(df, config, features, features_infos,
                     device, wandb_active=False, wandb_config={}, keep_models=False):
     training_results = []
-    model_list = [None]*global_config["kfold"]
-    scaler_list = [None]*global_config["kfold"]
+    model_list = [None]*config["kfold"]
+    scaler_list = [None]*config["kfold"]
 
     if wandb_active:
         wandb.init(config=wandb_config)
-        config = wandb.config
-    else:
-        config = global_config
+        # update config based on wandb.config
+        config.update(wandb.config)
 
     used_torch_type = torch.double if config["use_double"] else torch.float
 
-    for k in tqdm.tqdm(range(global_config["kfold"])):
-        train = list(range(global_config["kfold"]))
+    for k in tqdm.tqdm(range(config["kfold"])):
+        train = list(range(config["kfold"]))
         test = [train.pop(k)]
         df_train = df[df["kfold"].isin(train)]
         df_test = df[df["kfold"].isin(test)]
@@ -141,7 +159,7 @@ def k_fold_training(df, global_config, features, features_infos,
         trainloader = DataLoader(dataset_train,
                                  batch_size=config["batch_size"],
                                  shuffle=config["shuffle_dataloader"],
-                                 num_workers=global_config["num_workers"])
+                                 num_workers=config["num_workers"])
 
         # we load the data for evaluation
         X_train_voxel, X_train_features, y_train = prepare_eval_data(
@@ -170,20 +188,16 @@ def k_fold_training(df, global_config, features, features_infos,
         # Evaluate this model:
         model.eval()
         with torch.set_grad_enabled(False):
-            train_mse, _ = evaluate_model(
-                X_train_voxel, X_train_features, y_train, model, device)
-            test_mse, test_diff = evaluate_model(
+            _, test_diff = evaluate_model(
                 X_test_voxel, X_test_features, y_test, model, device)
             # get worst samples
             worst_samples = get_worst_samples(
-                df_test, test_diff, global_config)
+                df_test, test_diff, config)
 
             # print(f"MSE obtained for k-fold {k}: {mse}")
             results = results_by_epochs
             results.update({
                 "worst_samples": worst_samples,
-                "train_mse": train_mse,
-                "test_mse": test_mse,
                 "time": t1
             })
             training_results.append(results)
