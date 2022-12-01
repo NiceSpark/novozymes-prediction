@@ -258,7 +258,7 @@ def prepare_xgboost(df, config, features, train_scaler=StandardScaler, fit_scale
     return X, y
 
 
-def evaluate_model(X: torch.tensor, y: torch.tensor, model, device):
+def evaluate_model(X: torch.Tensor, y: torch.Tensor, model, device):
     """
     evaluate the model
     X and y must be torch tensors
@@ -299,15 +299,17 @@ def predict(row, model, device):
     return yhat
 
 
-def load_dataset(config, features):
+def load_dataset(config, features, rm_nan=False):
     df = pd.read_csv(f"{config['dataset_dir']}/{config['dataset_name']}.csv")
-
-    for feature in features:
-        # remove line with nan values for selected features
-        df = df[~(df[feature].isna())]
 
     # remove bad uniprot
     df = df[~(df["uniprot"].isin(config["bad_uniprot"]))]
+
+    if rm_nan:
+        for feature in features:
+            df = df[~(df[feature].isna())]
+    if config["destabilizing_only"]:
+        df = df[(df.ddG <= 0)]
 
     # apply max protein length
     df = df[df.length.le(config["max_protein_length"])]

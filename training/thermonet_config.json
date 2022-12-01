@@ -1,0 +1,31 @@
+{
+    "dataset_dir": "../data/main_dataset_creation/outputs/all_v3",
+    "dataset_name": "dataset_with_voxel",
+    "use_cuda": true,
+    "num_epochs": 10,
+    "optimizer": "adamw",
+    "batch_size": 512,
+    "num_workers": 12,
+    "max_protein_length": 600,
+    "shuffle_dataloader": true,
+    "target": "ddG",
+    "kfold": 5,
+    "ksplit_path": "./ksplit/shuffled_4_fixed_ksplit.json",
+    "destabilizing_only": true,
+    "bad_uniprot": [
+        "P02751",
+        "P07445",
+        "O61594",
+        "P00974",
+        "Q9H334",
+        "P0AA25",
+        "P24821"
+    ],
+    "diff_features": true,
+    "AdamW_decay": 1.4,
+    "dropout_rate": 0.063,
+    "learning_rate": 0.0002,
+    "conv_layer_num": 5,
+    "dropout_rate_dt": 0.3,
+    "dense_layer_size": 74
+}
