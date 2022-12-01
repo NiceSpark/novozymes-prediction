@@ -5,14 +5,14 @@
     "model_type": "hybrid",
     "use_cuda": true,
     "num_workers": 12,
-    "num_epochs": 20,
+    "num_epochs": 100,
     "stop_train_epochs": 20,
     "batch_size": 1024,
-    "cnn_dropout": 0.065,
+    "cnn_dropout": 0.45,
     "cnn_dense_layer_size": 74,
     "cnn_layer_num": 5,
-    "regression_dropout": 0.125,
-    "regression_fc_layer_size": 640,
+    "regression_dropout": 0.5,
+    "regression_fc_layer_size": 256,
     "regression_hidden_layers": 3,
     "with_final_half_layer": true,
     "with_relu": true,
@@ -35,7 +35,12 @@
     "group_kfold": false,
     "ksplit_path": "",
     "num_worst_samples": 10,
-    "bad_uniprot": [],
+    "bad_uniprot": [
+        "O61594",
+        "P07445",
+        "P00974",
+        "P0AA25"
+    ],
     "max_ddG_value": 0,
     "features_config": {
         "identification": {

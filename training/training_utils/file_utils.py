@@ -3,6 +3,7 @@
 import json
 import glob
 import os
+import shutil
 import matplotlib.pyplot as plt
 from datetime import datetime
 
@@ -32,11 +33,20 @@ def create_timestamp():
     return dateTimeObj
 
 
-def save_submission(df, name="submission"):
+def save_submission(df, name, training_dir):
     date_time = datetime.now()
     timestamp = date_time.strftime("%Y-%m-%d_%H-%M-%S")
-    save_path = f"./submissions/{name}_{timestamp}.csv"
+    dir_path = f"./submissions/{name}_{timestamp}"
+    save_path = f"{dir_path}/{name}_{timestamp}.csv"
+
+    # create dir
+    os.mkdir(dir_path)
+    # save submission csv
     df.to_csv(save_path, index=False)
+    # save config infos and results for reference
+    for path in glob.glob(f"{training_dir}/*.json")+glob.glob(f"{training_dir}/*.jpg"):
+        shutil.copy(path, dir_path)
+
     return save_path
 
 
@@ -47,7 +57,10 @@ def log_kfold_training(name, results, config, features, model_structure):
     dir_path = f"./outputs/{name}_{dir_num}"
 
     # add timestamp to all_training_results
-    results["timestamp"] = timestamp
+    results = {"timestamp": timestamp, **results}
+    config = {"timestamp": timestamp, **config}
+    features = {"timestamp": timestamp, **features}
+    model_structure = {"timestamp": timestamp, **model_structure}
 
     # create output subdir
     os.mkdir(dir_path)
