@@ -33,9 +33,11 @@ def create_timestamp():
     return dateTimeObj
 
 
-def save_submission(df, name, training_dir):
+def save_submission(df, training_dir):
     date_time = datetime.now()
     timestamp = date_time.strftime("%Y-%m-%d_%H-%M-%S")
+    training_config = open_json(training_dir+"/config.json")
+    name = training_config["model_type"]
     dir_path = f"./submissions/{name}_{timestamp}"
     save_path = f"{dir_path}/{name}_{timestamp}.csv"
 
