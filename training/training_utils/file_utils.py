@@ -61,8 +61,6 @@ def log_kfold_training(name, results, config, features, model_structure):
     # add timestamp to all_training_results
     results = {"timestamp": timestamp, **results}
     config = {"timestamp": timestamp, **config}
-    features = {"timestamp": timestamp, **features}
-    model_structure = {"timestamp": timestamp, **model_structure}
 
     # create output subdir
     os.mkdir(dir_path)

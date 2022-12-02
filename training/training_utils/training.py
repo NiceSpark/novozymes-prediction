@@ -84,9 +84,9 @@ def train_model(model: nn.Module, config: dict,
             best_test_mse = test_mse
             best_epoch = epoch
             best_model = copy.deepcopy(model)
-            if epoch - best_epoch > config["stop_train_epochs"]:
-                print('Early stopping')
-                break
+        if epoch - best_epoch > config["stop_train_epochs"]:
+            print('Early stopping')
+            break
 
     results = {
         "loss_over_time": loss_over_time,
