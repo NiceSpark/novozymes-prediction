@@ -4,13 +4,6 @@
         "wild_aa": "G",
         "mutation_position": 75.0,
         "mutated_aa": "A",
-        "diff": 8.53993034362793
-    },
-    {
-        "uniprot": "P00282",
-        "wild_aa": "H",
-        "mutation_position": 65.0,
-        "mutated_aa": "G",
-        "diff": 7.9443864822387695
+        "diff": 8.662424087524414
     }
 ]

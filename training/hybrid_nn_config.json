@@ -1,14 +1,14 @@
 {
     "dataset_dir": "../data/main_dataset_creation/outputs/all_v3",
     "dataset_name": "dataset_with_voxel",
-    "features_name": "features",
+    "features_name": "features_handpicked",
     "model_type": "hybrid",
     "use_cuda": true,
     "num_workers": 12,
-    "num_epochs": 30,
+    "num_epochs": 100,
     "stop_train_epochs": 20,
     "batch_size": 1024,
-    "cnn_dropout": 0.5,
+    "cnn_dropout": 0.3,
     "cnn_dense_layer_size": 32,
     "cnn_layer_num": 5,
     "regression_dropout": 0.5,
@@ -41,7 +41,7 @@
         "P00974",
         "P0AA25"
     ],
-    "max_ddG_value": 0,
+    "max_ddG_value": 0.25,
     "features_config": {
         "identification": {
             "use": false,
