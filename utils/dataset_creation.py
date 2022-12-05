@@ -2,6 +2,7 @@ import json
 import pandas as pd
 import numpy as np
 import urllib.request
+from .file_utils import open_json, write_json
 
 
 def add_missing_column(df: pd.DataFrame, columns: list):
@@ -46,42 +47,56 @@ def apply_split_mutation_code(row):
 
 
 def correct_mutation_position(wild_aa: str, mutation_position: int, sequence: str,
-                              chain_start: int, position_offset: int):
+                              chain_start: int, position_offset_max: int):
     """
     This function check if the mutation_code is coherent
 
     @returns:
         the correct mutation_code
-        or "" if no mutation_code is false and cannot be corrected
+        or None if no mutation_code is false and cannot be corrected
     """
     try:
         mutation_position = int(mutation_position)
-        position_offset = int(position_offset)
+        position_offset_max = int(position_offset_max)
         chain_start = int(chain_start)
     except:
-        print(f"error, positions are not all int")
-        print(f"{mutation_position=}, {position_offset=}, {chain_start=}")
-        print(f"{sequence=}")
+        error = {
+            "error": "positions are not all int",
+            "mutation_position": mutation_position,
+            "position_offset": position_offset,
+            "chain_start": chain_start,
+            "sequence": sequence,
+        }
+        print(error)
+        errors = open_json("correct_mutation_position_errors.json")
+        errors.append(error)
+        write_json(errors)
         return None
 
     if sequence == "":
         return None
-    elif mutation_position > len(sequence):
+    elif mutation_position >= len(sequence):
         # mutation position not coherent with sequence
         return None
     if sequence[mutation_position] == wild_aa:
         return mutation_position
-    if (chain_start > 0 and len(sequence) > mutation_position+chain_start
-            and sequence[mutation_position+chain_start] == wild_aa):
+    if ((chain_start > 0) and (len(sequence) > mutation_position+chain_start)
+            and (sequence[mutation_position+chain_start] == wild_aa)):
         # add chain start
         return mutation_position+chain_start
-    if (len(sequence) > mutation_position+position_offset and
-            sequence[mutation_position+position_offset] == wild_aa):
-        return mutation_position+position_offset
 
-    if (chain_start > 0 and len(sequence) > mutation_position+chain_start+position_offset and
-            sequence[mutation_position+chain_start+position_offset] == wild_aa):
-        return mutation_position+chain_start+position_offset
+    position_offsets = []
+    for k in range(1, position_offset_max+1):
+        position_offsets.append(k)
+        position_offsets.append(-k)
+    for position_offset in position_offsets:
+        if ((len(sequence) > mutation_position+position_offset) and
+                (sequence[mutation_position+position_offset] == wild_aa)):
+            return mutation_position+position_offset
+
+        if ((chain_start > 0) and (len(sequence) > mutation_position+chain_start+position_offset) and
+                (sequence[mutation_position+chain_start+position_offset] == wild_aa)):
+            return mutation_position+chain_start+position_offset
     return None
 
 
