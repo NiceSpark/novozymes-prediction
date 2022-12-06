@@ -21,23 +21,23 @@ MAX_SUBDF_SIZE = 200
 ADD_STRUCTURE_INFOS = False
 ADD_DEMASK_PREDICTIONS = False
 ADD_ROSETTA_SCORES = True
-ADD_PROTEIN_ANALYSIS = False
-ONLY_DDG = True
+ADD_PROTEIN_ANALYSIS = True
+ONLY_DDG = False
 SAVE_NEW_CSV = True
 CONVERT_MUTATION_TO_INT = True
 CLEAN_DF = True
-START_FRESH = False
+START_FRESH = True
 
-SUBMISSION = True
+SUBMISSION = False
 
-NAME = "all_v3"
+NAME = "merged"
 DATASET_DIR = f"./data/main_dataset_creation/outputs/{NAME}/"
 if SUBMISSION:
     DATASET_INPUT_PATH = DATASET_DIR+"submission_with_esm_features.csv"
     DATASET_OUTPUT_PATH = DATASET_DIR+"submission_with_all_features.csv"
 else:
-    DATASET_INPUT_PATH = DATASET_DIR+"dataset_with_structure_features.csv"
-    DATASET_OUTPUT_PATH = DATASET_DIR+"dataset_with_all_features.csv"
+    DATASET_INPUT_PATH = DATASET_DIR+"dataset_with_voxel.csv"
+    DATASET_OUTPUT_PATH = DATASET_DIR+"dataset_with_multifeatures.csv"
 
 
 if START_FRESH:

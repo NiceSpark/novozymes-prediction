@@ -1,6 +1,8 @@
 import os
 import numpy as np
 from glob import glob
+from loguru import logger
+import json
 
 from .file_utils import open_json
 
@@ -34,35 +36,49 @@ def add_columns(df):
 
 
 def add_rosetta_scores_to_row(row, all_relaxed_scores, all_alphafold_scores):
-    name, _ = os.path.splitext(row["alphafold_path"].split("/")[-1])
-    alphafold_sc_path = f"./data/main_dataset_creation/3D_structures/alphafold/{name}.sc"
-    wild_sc_path = f"./compute_mutated_structures/relaxed_pdb/{name}_relaxed/{name}_relaxed.sc"
+    logger.add("out.log", backtrace=True, diagnose=True)
 
-    w_aa, m_aa = row["wild_aa"], row["mutated_aa"]
-    pos = int(row["mutation_position"])+1
-    mutated_sc_path = (f"./compute_mutated_structures/relaxed_pdb/{name}_relaxed/" +
-                       f"{name}_relaxed_{w_aa}{pos}{m_aa}_relaxed.sc")
-    if not os.path.exists(mutated_sc_path):
-        mutated_sc_path = row["relaxed_mutated_3D_path"].replace(".pdb", ".sc")
+    try:
+        name, _ = os.path.splitext(row["alphafold_path"].split("/")[-1])
+        alphafold_sc_path = f"./data/main_dataset_creation/3D_structures/alphafold/{name}.sc"
+        wild_sc_path = f"./compute_mutated_structures/relaxed_pdb/{name}_relaxed/{name}_relaxed.sc"
 
-    if alphafold_sc_path in all_alphafold_scores:
-        alphafold_scores = open_json(alphafold_sc_path)
-        row = add_scores(row, alphafold_scores, "alphafold")
+        w_aa, m_aa = row["wild_aa"], row["mutated_aa"]
+        pos = int(row["mutation_position"])+1
+        mutated_sc_path = (f"./compute_mutated_structures/relaxed_pdb/{name}_relaxed/" +
+                           f"{name}_relaxed_{w_aa}{pos}{m_aa}_relaxed.sc")
+        if not os.path.exists(mutated_sc_path):
+            mutated_sc_path = row["relaxed_mutated_3D_path"].replace(
+                ".pdb", ".sc")
 
-    if (wild_sc_path in all_relaxed_scores) and (mutated_sc_path in all_relaxed_scores):
-        wild_scores = open_json(wild_sc_path)
-        mutated_scores = open_json(mutated_sc_path)
-        row = add_scores(row, wild_scores, "wild_relaxed")
-        row = add_scores(row, mutated_scores, "mutated_relaxed")
-        row = add_delta_scores(row, wild_scores, mutated_scores, "mutation")
-    elif (wild_sc_path in all_relaxed_scores):
-        wild_scores = open_json(wild_sc_path)
-        row = add_scores(row, wild_scores, "wild_relaxed")
+        if alphafold_sc_path in all_alphafold_scores:
+            with open(alphafold_sc_path) as f:
+                line = f.readline()
+            alphafold_scores = json.loads(line)
+            row = add_scores(row, alphafold_scores, "alphafold")
 
+        if (wild_sc_path in all_relaxed_scores) and (mutated_sc_path in all_relaxed_scores):
+            with open(wild_sc_path) as f:
+                wild_line = f.readline()
+            with open(mutated_sc_path) as f:
+                mutated_line = f.readline()
+            wild_scores = json.loads(wild_line)
+            mutated_scores = json.loads(mutated_line)
+            row = add_scores(row, wild_scores, "wild_relaxed")
+            row = add_scores(row, mutated_scores, "mutated_relaxed")
+            row = add_delta_scores(
+                row, wild_scores, mutated_scores, "mutation")
+        elif (wild_sc_path in all_relaxed_scores):
+            wild_scores = open_json(wild_sc_path)
+            row = add_scores(row, wild_scores, "wild_relaxed")
+    except Exception as e:
+        logger.exception(f"Exception: {e}")
     return row
 
 
 def add_rosetta_scores(df, multiprocessing=False):
+    # Caution, may leak sensitive data in prod
+    logger.add("out.log", backtrace=True, diagnose=True)
     if not multiprocessing:
         df = add_columns(df)
 
