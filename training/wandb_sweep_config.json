@@ -5,79 +5,27 @@
         "goal": "minimize"
     },
     "parameters": {
-        "optimizer": {
-            "values": [
-                "adam",
-                "sgd"
-            ]
-        },
-        "learning_rate": {
-            "values": [
-                1e-3,
-                1e-4
-            ]
-        },
-        "fc_layer_size": {
-            "values": [
-                64,
-                128,
-                192,
-                256
-            ]
-        },
-        "hidden_layers": {
-            "values": [
-                1,
-                3,
-                5,
-                7
-            ]
-        },
-        "with_final_half_layer": {
-            "values": [
-                false,
-                true
-            ]
-        },
-        "with_relu": {
-            "values": [
-                false,
-                true
-            ]
-        },
-        "with_softmax": {
-            "value": false
-        },
-        "dropout": {
+        "regression_dropout": {
             "values": [
                 0,
                 0.25,
                 0.5
             ]
         },
-        "batch_size": {
-            "value": 1024
+        "regression_fc_layer_size": {
+            "values": [
+                64,
+                128,
+                256,
+                512
+            ]
         },
-        "num_epochs": {
-            "value": 50
-        },
-        "max_protein_length": {
-            "value": 600
-        },
-        "reverse_probability": {
-            "value": 0
-        },
-        "select_by_protein": {
-            "value": false
-        },
-        "polynomial_features_power": {
-            "value": 1
-        },
-        "shuffle_dataloader": {
-            "value": true
-        },
-        "target": {
-            "value": "ddG"
+        "regression_hidden_layers": {
+            "values": [
+                1,
+                3,
+                5
+            ]
         }
     }
 }
