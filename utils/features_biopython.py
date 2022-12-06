@@ -11,6 +11,7 @@ from Bio.PDB.PDBExceptions import PDBConstructionWarning
 from Bio.PDB.DSSP import DSSP, ss_to_index
 from biopandas.pdb import PandasPdb
 from blosum import BLOSUM
+from .file_utils import open_json, write_json
 
 SUBSET_DUPLICATES_NO_PH = ["uniprot", "wild_aa", "mutation_position",
                            "mutated_aa", "sequence"]
@@ -245,17 +246,34 @@ def add_structure_infos(df: pd.DataFrame, compute_sasa=True, compute_depth=True,
         name, _ = os.path.splitext(alphafold_path.split("/")[-1])
 
         wild_relaxed_path = f"./compute_mutated_structures/relaxed_pdb/{name}_relaxed/{name}_relaxed.pdb"
-        df = add_structure_infos_by_protein(df, alphafold_path, "alphafold",
-                                            compute_sasa, compute_depth, compute_dssp, compute_bfactor)
-        df = add_structure_infos_by_protein(df, wild_relaxed_path, "wild_relaxed",
-                                            compute_sasa, compute_depth, compute_dssp, compute_bfactor)
+        try:
+            df = add_structure_infos_by_protein(df, alphafold_path, "alphafold",
+                                                compute_sasa, compute_depth, compute_dssp, compute_bfactor)
+        except Exception as e:
+            errors = open_json(
+                "/home/jupyter/novozymes-prediction/errors.json")
+            errors.append(
+                f"error happend for {name} in add_structure_infos_by_protein (alphafold): {e}")
+        try:
+            df = add_structure_infos_by_protein(df, wild_relaxed_path, "wild_relaxed",
+                                                compute_sasa, compute_depth, compute_dssp, compute_bfactor)
+        except Exception as e:
+            errors = open_json(
+                "/home/jupyter/novozymes-prediction/errors.json")
+            errors.append(
+                f"error happend for {name} in add_structure_infos_by_protein (wild_relaxed): {e}")
 
     unique_mutations_df = df.copy()
     unique_mutations_df.drop_duplicates(
         subset=SUBSET_DUPLICATES_NO_PH, inplace=True)
-    unique_mutations_df = add_structure_infos_by_mutation(unique_mutations_df,
-                                                          compute_sasa, compute_depth, compute_dssp,
-                                                          compute_bfactor)
+    try:
+        unique_mutations_df = add_structure_infos_by_mutation(unique_mutations_df,
+                                                              compute_sasa, compute_depth, compute_dssp,
+                                                              compute_bfactor)
+    except Exception as e:
+        errors = open_json("/home/jupyter/novozymes-prediction/errors.json")
+        errors.append(
+            f"error happend for {name} in add_structure_infos_by_mutation: {e}")
 
     # add deltas
     unique_mutations_df["mutation_sasa"] = unique_mutations_df["mutated_relaxed_sasa"] - \

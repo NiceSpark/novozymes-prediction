@@ -1,1 +1,16 @@
-[]
+[
+    {
+        "uniprot": "P0AEX9",
+        "wild_aa": "P",
+        "mutation_position": 132.0,
+        "mutated_aa": "A",
+        "diff": 7.5518479347229
+    },
+    {
+        "uniprot": "P0AE67",
+        "wild_aa": "G",
+        "mutation_position": 75.0,
+        "mutated_aa": "A",
+        "diff": 8.778585433959961
+    }
+]
