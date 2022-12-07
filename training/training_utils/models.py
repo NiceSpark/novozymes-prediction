@@ -115,11 +115,6 @@ class HybridNN(nn.Module):
         regression_dropout = config.get("regression_dropout", 0.3)
         regression_fc_layer_size = config.get("regression_fc_layer_size", 64)
         regression_hidden_layers = config.get("regression_hidden_layers", 5)
-        with_final_half_layer = config.get("with_final_half_layer", True)
-        with_relu = config.get("with_relu", True)
-
-        cnn_model = []
-        regression_model = []
 
         if self.model_type in ["hybrid", "cnn_only"]:
             ##### build cnn model #####
@@ -141,6 +136,8 @@ class HybridNN(nn.Module):
                     nn.Dropout(p=cnn_dropout),
                 )
             ]
+        else:
+            cnn_model = []
 
         if self.model_type in ["hybrid", "regression_only"]:
             ##### build regression model #####
@@ -149,42 +146,46 @@ class HybridNN(nn.Module):
             else:
                 # regression only
                 regression_input_size = num_features
-            # input layer
-            regression_model.append(nn.Flatten())
-            regression_model.append(nn.Linear(regression_input_size,
-                                              regression_fc_layer_size))
-            if with_relu:
-                regression_model.append(nn.ReLU())
-            regression_model.append(nn.Dropout(regression_dropout))
 
-            # hidden layers
-            for _ in range(regression_hidden_layers):
-                regression_model.append(
-                    nn.Linear(regression_fc_layer_size, regression_fc_layer_size))
-                if with_relu:
-                    regression_model.append(nn.ReLU())
-                regression_model.append(nn.Dropout(regression_dropout))
-
-            if with_final_half_layer:
-                regression_model.append(nn.Linear(regression_fc_layer_size,
-                                                  int(regression_fc_layer_size/2)))
-                if with_relu:
-                    regression_model.append(nn.ReLU())
-                regression_model.append(nn.Dropout(regression_dropout))
-                # last layer
-                regression_model.append(
-                    nn.Linear(int(regression_fc_layer_size/2), 1))
-            else:
-                # last layer
-                regression_model.append(
-                    nn.Linear(int(regression_fc_layer_size), 1))
+            regression_model = [
+                # input layer
+                nn.Sequential(
+                    nn.Flatten(),
+                    nn.Linear(regression_input_size, regression_fc_layer_size),
+                    nn.ReLU(),
+                    nn.Dropout(regression_dropout)
+                ),
+                # hidden layers
+                nn.Sequential(
+                    *[nn.Sequential(
+                        nn.Linear(regression_fc_layer_size,
+                                  regression_fc_layer_size),
+                        nn.ReLU(),
+                        nn.Dropout(regression_dropout),
+                    ) for _ in range(regression_hidden_layers)
+                    ]
+                ),
+            ]
         else:
             # if model_type is cnn_only, then we want a final linear layer
-            regression_model.append(
+            regression_model = nn.Sequential(
                 nn.Linear(in_features=cnn_dense_layer_size, out_features=1))
 
+        final_half_layer_model = nn.Sequential(
+            # final half layer, gonna be used for both target
+            nn.Linear(regression_fc_layer_size, int(
+                regression_fc_layer_size/2)),
+            nn.ReLU(),
+            nn.Dropout(regression_dropout),
+            # last layer
+            nn.Linear(int(regression_fc_layer_size/2), 1),
+        )
+
+        # store models
         self.cnn_model = nn.Sequential(*cnn_model)
         self.regression_model = nn.Sequential(*regression_model)
+        self.ddG = nn.Sequential(*final_half_layer_model)
+        self.dTm = nn.Sequential(*final_half_layer_model)
 
     def forward(self, voxel_features, features):
 
@@ -205,4 +206,6 @@ class HybridNN(nn.Module):
             x = features
 
         x = self.regression_model(x)
-        return x
+        x_ddG = self.ddG(x)
+        x_dTm = self.dTm(x)
+        return x_ddG, x_dTm

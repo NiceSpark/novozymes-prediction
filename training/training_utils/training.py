@@ -15,8 +15,9 @@ from .model_utils import *
 
 def train_model(model: nn.Module, config: dict,
                 optimizer, scheduler, loss_function,
-                trainloader, device,
-                X_test_voxel, X_test_features, y_test):
+                trainloader, device, dataset_train,
+                X_test_voxel, X_test_features,
+                y_test_ddG, y_test_dTm):
     """
     train the model
     we update some stastistic data over each epoch
@@ -25,8 +26,9 @@ def train_model(model: nn.Module, config: dict,
     """
 
     loss_over_time = []
-    train_mse_over_time = []
     test_mse_over_time = []
+    test_mse_ddG_over_time = []
+    test_mse_dTm_over_time = []
     learning_rates = []
     best_test_mse = np.inf
     best_epoch = 0
@@ -39,59 +41,74 @@ def train_model(model: nn.Module, config: dict,
         model.train()
         # Set current loss value
         current_loss = 0.0
-        current_mse = 0
         i = 0
         # Iterate over the DataLoader for training data
         for i, data in enumerate(trainloader, 0):
+            # losses are initialized as we have multiple targets
+            loss_ddG = torch.zeros(1, requires_grad=True)
+            loss_dTm = torch.zeros(1, requires_grad=True)
             # Get and prepare inputs
-            voxel_inputs, features_inputs, targets = data
-            # inputs, targets = inputs.float(), targets.float()
-            targets = targets.reshape((targets.shape[0], 1))
+            voxel_inputs, features_inputs, ddG_targets, dTm_targets = data
             # Move to cuda device
             voxel_inputs = voxel_inputs.to(device)
             features_inputs = features_inputs.to(device)
-            targets = targets.to(device)
+            # separate targets, keep only non nan
+            ddG_targets = ddG_targets.to(device)
+            dTm_targets = dTm_targets.to(device)
+            ddG_targets = ddG_targets.reshape((ddG_targets.shape[0], 1))
+            dTm_targets = dTm_targets.reshape((dTm_targets.shape[0], 1))
+            not_nan_ddG_targets = ~torch.isnan(ddG_targets)
+            not_nan_dTm_targets = ~torch.isnan(dTm_targets)
             # Zero the gradients
             optimizer.zero_grad()
             # Perform forward pass
-            outputs = model(voxel_inputs, features_inputs)
-            # Compute loss
-            loss = loss_function(outputs, targets)
+            ddG_outputs, dTm_outputs = model(voxel_inputs, features_inputs)
+            # compute ddG and dTm loss
+            if torch.any(not_nan_ddG_targets):
+                loss_ddG = loss_function(ddG_outputs[not_nan_ddG_targets],
+                                         ddG_targets[not_nan_ddG_targets])
+
+            if torch.any(not_nan_dTm_targets):
+                loss_dTm = loss_function(dTm_outputs[not_nan_dTm_targets],
+                                         dTm_targets[not_nan_dTm_targets])
+            # Compute global loss
+            len_ddG, len_dTm = not_nan_ddG_targets.sum(), not_nan_dTm_targets.sum()
+            loss = ((len_ddG*loss_ddG)+(len_dTm*loss_dTm))/(len_ddG+len_dTm)
             # Perform backward pass
             loss.backward()
             # Perform optimization
             optimizer.step()
 
             # compute statistics
-
-            current_mse += mean_squared_error(
-                targets.cpu().detach().numpy(), outputs.cpu().detach().numpy())
             current_loss += loss.item()
 
         learning_rates.append(optimizer.param_groups[0]["lr"])
         loss_over_time.append(current_loss/(i+1))
-        train_mse_over_time.append(current_mse/(i+1))
 
         scheduler.step()
 
         model.eval()
         with torch.set_grad_enabled(False):
-            test_mse, _ = evaluate_model(
-                X_test_voxel, X_test_features, y_test, model, device)
+            test_mse, test_mse_ddG, test_mse_dTm = evaluate_model(X_test_voxel, X_test_features,
+                                                                  y_test_ddG, y_test_dTm,
+                                                                  dataset_train, model, device)
             test_mse_over_time.append(test_mse)
+            test_mse_ddG_over_time.append(test_mse_ddG)
+            test_mse_dTm_over_time.append(test_mse_dTm)
 
         if test_mse < best_test_mse:
             best_test_mse = test_mse
             best_epoch = epoch
             best_model = copy.deepcopy(model)
         if epoch - best_epoch > config["stop_train_epochs"]:
-            print('Early stopping')
+            print(f"Early stopping at epoch: {epoch}")
             break
 
     results = {
         "loss_over_time": loss_over_time,
-        "train_mse_over_time": train_mse_over_time,
         "test_mse_over_time": test_mse_over_time,
+        "test_mse_ddG_over_time": test_mse_ddG_over_time,
+        "test_mse_dTm_over_time": test_mse_dTm_over_time,
         "learning_rate_over_time": learning_rates,
         "best_epoch": best_epoch,
         "best_test_mse": best_test_mse,
@@ -154,7 +171,7 @@ def k_fold_training(df, config, features, features_infos,
         df_test = df[df["kfold"].isin(test)]
 
         # we load the data for training
-        dataset_train = prepare_train_data(
+        dataset_train = prepare_train_dataset(
             df_train, config, features, features_infos)
         trainloader = DataLoader(dataset_train,
                                  batch_size=config["batch_size"],
@@ -162,10 +179,8 @@ def k_fold_training(df, config, features, features_infos,
                                  num_workers=config["num_workers"])
 
         # we load the data for evaluation
-        X_train_voxel, X_train_features, y_train = prepare_eval_data(
-            df_train, config, features, features_infos, dataset_train.scaler)
-        X_test_voxel, X_test_features, y_test = prepare_eval_data(
-            df_test, config, features, features_infos, dataset_train.scaler)
+        X_test_voxel, X_test_features, y_test_ddG, y_test_dTm = prepare_eval_data(
+            df_test, config, features, features_infos, dataset_train.X_scaler)
 
         # Initialize a new Novozymes Model
         model = HybridNN(
@@ -179,39 +194,37 @@ def k_fold_training(df, config, features, features_infos,
         scheduler = build_scheduler(optimizer, config)
         # Train model:
         t0 = time.time()
-        model, results_by_epochs = train_model(
-            model, config, optimizer, scheduler, loss_function,
-            trainloader, device, X_test_voxel, X_test_features, y_test)
+        model, results_by_epochs = train_model(model, config, optimizer, scheduler,
+                                               loss_function, trainloader, device,
+                                               dataset_train,  # we need the scaler
+                                               X_test_voxel, X_test_features,
+                                               y_test_ddG, y_test_dTm)
 
         t1 = time.time()-t0
 
         # Evaluate this model:
         model.eval()
         with torch.set_grad_enabled(False):
-            _, test_diff = evaluate_model(
-                X_test_voxel, X_test_features, y_test, model, device)
-            # get worst samples
-            worst_samples = get_worst_samples(
-                df_test, test_diff, config)
-
             # print(f"MSE obtained for k-fold {k}: {mse}")
             results = results_by_epochs
             results.update({
-                "worst_samples": worst_samples,
                 "time": t1
             })
             training_results.append(results)
 
         if keep_models:
             torch.save(model, f"tmp/model_{k}.pth")
-            dump(dataset_train.scaler, open(f"tmp/scaler_{k}.pkl", "wb"))
+            dump(dataset_train.X_scaler, open(f"tmp/X_scaler_{k}.pkl", "wb"))
+            dump(dataset_train.ddG_scaler, open(
+                f"tmp/ddG_scaler_{k}.pkl", "wb"))
+            dump(dataset_train.dTm_scaler, open(
+                f"tmp/dTm_scaler_{k}.pkl", "wb"))
 
         # end of process for k, freeing memory
         del model
         del df_train, df_test
         del dataset_train, trainloader
-        del X_train_voxel, X_train_features, y_train
-        del X_test_voxel, X_test_features, y_test
+        del X_test_voxel, X_test_features, y_test_ddG, y_test_dTm
         gc.collect()
         torch.cuda.empty_cache()
 
