@@ -1,16 +1,23 @@
 [
     {
-        "uniprot": "P0AEX9",
-        "wild_aa": "P",
-        "mutation_position": 132.0,
-        "mutated_aa": "A",
-        "diff": 7.5518479347229
-    },
-    {
         "uniprot": "P0AE67",
         "wild_aa": "G",
         "mutation_position": 75.0,
         "mutated_aa": "A",
-        "diff": 8.778585433959961
+        "diff": 8.680956840515137
+    },
+    {
+        "uniprot": "P0AE67",
+        "wild_aa": "N",
+        "mutation_position": 22.0,
+        "mutated_aa": "G",
+        "diff": 7.9785356521606445
+    },
+    {
+        "uniprot": "P0AEX9",
+        "wild_aa": "P",
+        "mutation_position": 132.0,
+        "mutated_aa": "A",
+        "diff": 7.563032150268555
     }
 ]

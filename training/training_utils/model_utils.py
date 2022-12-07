@@ -248,10 +248,14 @@ def load_dataset(config, features, rm_nan=False):
 
     if config["model_type"] in ["hybrid", "cnn_only"]:
         # load voxel features
-        df["direct_voxel_path"] = df["direct_voxel_path"].apply(
-            lambda row: row.replace("./",
-                                    "../compute_mutated_structures/")+".npy")
-        df["direct_voxel_features"] = df["direct_voxel_path"].apply(np.load)
+        if config["use_pdb_chain_voxel"]:
+            print("using pdb_chain_voxel")
+            df = df[~(df["pdb_chain_voxel_path"].isna())]
+            df["direct_voxel_features"] = df["pdb_chain_voxel_path"].apply(
+                np.load)
+        else:
+            df["direct_voxel_features"] = df["direct_voxel_path"].apply(
+                np.load)
     else:
         df["direct_voxel_features"] = 0.0
 

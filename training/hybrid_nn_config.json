@@ -1,18 +1,19 @@
 {
-    "dataset_dir": "../data/main_dataset_creation/outputs/all_v3",
-    "dataset_name": "dataset_with_voxel",
+    "dataset_dir": "../data/main_dataset_creation/outputs/merged",
+    "dataset_name": "dataset_final_6_12_14_09",
     "features_name": "features_handpicked",
     "model_type": "hybrid",
     "use_cuda": true,
+    "use_pdb_chain_voxel": true,
     "num_workers": 12,
-    "num_epochs": 150,
-    "stop_train_epochs": 20,
+    "num_epochs": 100,
+    "stop_train_epochs": 100,
     "batch_size": 1024,
     "cnn_dropout": 0.3,
     "cnn_dense_layer_size": 32,
     "cnn_layer_num": 5,
     "regression_dropout": 0.5,
-    "regression_fc_layer_size": 512,
+    "regression_fc_layer_size": 256,
     "regression_hidden_layers": 3,
     "with_final_half_layer": true,
     "with_relu": true,
@@ -25,6 +26,7 @@
         30,
         40
     ],
+    "max_ddG_value": 0.25,
     "voxel_features_difference": true,
     "max_protein_length": 600,
     "reverse_probability": 0,
@@ -41,9 +43,12 @@
         "P00974",
         "P0AA25"
     ],
-    "max_ddG_value": 0.25,
     "features_config": {
         "identification": {
+            "use": false,
+            "category": "global"
+        },
+        "paths": {
             "use": false,
             "category": "global"
         },
