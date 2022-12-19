@@ -8,6 +8,14 @@ import matplotlib.pyplot as plt
 from datetime import datetime
 
 
+class AttrDict:
+    def __init__(self, d):
+        self.d = d
+
+    def __getattr__(self, name):
+        return self.d[name]
+
+
 def open_json(filename):
     """
     open a .json file from the file path (filename)
@@ -74,39 +82,50 @@ def log_kfold_training(name, results, config, features, model_structure):
     # plot loss/mse over time for training on whole dataset
     simple_train_results = results["simple_train"]
 
-    best_epoch_avg = sum(x['best_epoch']
-                         for x in simple_train_results)/config["kfold"]
-    best_test_mse_avg = sum(x['best_test_mse']
-                            for x in simple_train_results)/config["kfold"]
+    best_epoch_avg = sum(x.get("best_epoch", 0)
+                         for x in simple_train_results)/int(config["kfold"])
+    best_test_mse_avg = sum(x.get("best_test_mse")
+                            for x in simple_train_results)/int(config["kfold"])
     training_time = sum(x.get('time', 0) for x in simple_train_results)
     loss_list = [x.get("loss_over_time") for x in simple_train_results]
     learning_rate_list = [x.get("learning_rate_over_time")
                           for x in simple_train_results]
-    train_mse_list = [x.get("train_mse_over_time")
-                      for x in simple_train_results]
     test_mse_list = [x.get("test_mse_over_time")
                      for x in simple_train_results]
-
+    test_mse_ddG_list = [x.get("test_mse_ddG_over_time")
+                         for x in simple_train_results]
+    test_mse_dTm_list = [x.get("test_mse_dTm_over_time")
+                         for x in simple_train_results]
     if (test_mse_list[0] is not None and loss_list[0] is not None):
-        colors = ['r', 'c', 'b', 'm', 'y']
+        colors = ['r', 'c', 'b', 'm', 'y', 'r--', 'c--', 'b--', 'm--', 'y--']
 
-        plt.figure(figsize=(10, 5))
+        plt.figure(figsize=(20, 8))
         plt.title(
             f"Training Results on {config['dataset_name']} for {name}_{dir_num}")
         plt.suptitle(
             f"{best_test_mse_avg= :.2f}, {best_epoch_avg= :.2f}, {training_time= :.2f}")
 
-        plt.subplot(1, 3, 1)
-        plt.title("learning rate over time")
-        for i, lr in enumerate(learning_rate_list):
-            plt.plot(lr, colors[i], label=f"learning_rate_{i}")
+        # plt.subplot(1, 3, 1)
+        # plt.title("learning rate over time")
+        # for i, lr in enumerate(learning_rate_list):
+        #     plt.plot(lr, colors[i], label=f"learning_rate_{i}")
 
-        plt.subplot(1, 3, 2)
-        plt.title("train mse over time")
-        for i, train_mse in enumerate(train_mse_list):
-            plt.plot(train_mse, colors[i], label=f"train_mse_{i}")
+        plt.subplot(1, 4, 1)
+        plt.title("loss over time")
+        for i, loss in enumerate(loss_list):
+            plt.plot(loss, colors[i], label=f"loss_{i}")
 
-        plt.subplot(1, 3, 3)
+        plt.subplot(1, 4, 2)
+        plt.title("test_mse_ddG_over_time")
+        for i, test_mse_ddG in enumerate(test_mse_ddG_list):
+            plt.plot(test_mse_ddG, colors[i], label=f"test_mse_ddG_{i}")
+
+        plt.subplot(1, 4, 3)
+        plt.title("test_mse_dTm_over_time")
+        for i, test_mse_dTm in enumerate(test_mse_dTm_list):
+            plt.plot(test_mse_dTm, colors[i], label=f"test_mse_dTm_{i}")
+
+        plt.subplot(1, 4, 4)
         plt.title("test mse over time")
         for i, test_mse in enumerate(test_mse_list):
             plt.plot(test_mse, colors[i], label=f"test_mse_{i}")

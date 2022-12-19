@@ -97,12 +97,21 @@ class ThermoNet2(nn.Module):
 
 
 class HybridNN(nn.Module):
+    """
+    Hybrid model with CNN and FC layers
+    This model can have multiple targets, ie. up to 2 outputs: ddG and dTm
+    """
+
     def __init__(self, num_features: int, config):
         super().__init__()
         self.voxel_features_difference = config["voxel_features_difference"]
         self.model_type = config["model_type"]
 
         # get parameters
+        # targets:
+        self.targets = config["targets"]
+        self.num_outputs = len(self.targets)
+
         # cnn specifics:
         CONV_LAYER_SIZES = [14, 16, 24, 32, 48, 78, 128]
         FLATTEN_SIZES = [0, 5488, 5184, 4000, 3072, 2106, 1024]
@@ -115,11 +124,6 @@ class HybridNN(nn.Module):
         regression_dropout = config.get("regression_dropout", 0.3)
         regression_fc_layer_size = config.get("regression_fc_layer_size", 64)
         regression_hidden_layers = config.get("regression_hidden_layers", 5)
-        with_final_half_layer = config.get("with_final_half_layer", True)
-        with_relu = config.get("with_relu", True)
-
-        cnn_model = []
-        regression_model = []
 
         if self.model_type in ["hybrid", "cnn_only"]:
             ##### build cnn model #####
@@ -141,6 +145,8 @@ class HybridNN(nn.Module):
                     nn.Dropout(p=cnn_dropout),
                 )
             ]
+        else:
+            cnn_model = []
 
         if self.model_type in ["hybrid", "regression_only"]:
             ##### build regression model #####
@@ -149,40 +155,42 @@ class HybridNN(nn.Module):
             else:
                 # regression only
                 regression_input_size = num_features
-            # input layer
-            regression_model.append(nn.Flatten())
-            regression_model.append(nn.Linear(regression_input_size,
-                                              regression_fc_layer_size))
-            if with_relu:
-                regression_model.append(nn.ReLU())
-            regression_model.append(nn.Dropout(regression_dropout))
 
-            # hidden layers
-            for _ in range(regression_hidden_layers):
-                regression_model.append(
-                    nn.Linear(regression_fc_layer_size, regression_fc_layer_size))
-                if with_relu:
-                    regression_model.append(nn.ReLU())
-                regression_model.append(nn.Dropout(regression_dropout))
-
-            if with_final_half_layer:
-                regression_model.append(nn.Linear(regression_fc_layer_size,
-                                                  int(regression_fc_layer_size/2)))
-                if with_relu:
-                    regression_model.append(nn.ReLU())
-                regression_model.append(nn.Dropout(regression_dropout))
-                # last layer
-                regression_model.append(
-                    nn.Linear(int(regression_fc_layer_size/2), 1))
-            else:
-                # last layer
-                regression_model.append(
-                    nn.Linear(int(regression_fc_layer_size), 1))
+            regression_model = [
+                # input layer
+                nn.Sequential(
+                    nn.Flatten(),
+                    nn.Linear(regression_input_size, regression_fc_layer_size),
+                    nn.ReLU(),
+                    nn.Dropout(regression_dropout)
+                ),
+                # hidden layers
+                nn.Sequential(
+                    *[nn.Sequential(
+                        nn.Linear(regression_fc_layer_size,
+                                  regression_fc_layer_size),
+                        nn.ReLU(),
+                        nn.Dropout(regression_dropout),
+                    ) for _ in range(regression_hidden_layers)
+                    ]
+                ),
+                # final half layer, gonna be used for all targets
+                nn.Sequential(
+                    nn.Linear(regression_fc_layer_size, int(
+                        regression_fc_layer_size/2)),
+                    nn.ReLU(),
+                    nn.Dropout(regression_dropout),
+                    # last layer
+                    nn.Linear(int(regression_fc_layer_size/2),
+                              self.num_outputs),
+                )
+            ]
         else:
             # if model_type is cnn_only, then we want a final linear layer
-            regression_model.append(
-                nn.Linear(in_features=cnn_dense_layer_size, out_features=1))
+            regression_model = nn.Sequential(
+                nn.Linear(cnn_dense_layer_size, self.num_outputs))
 
+        # store models
         self.cnn_model = nn.Sequential(*cnn_model)
         self.regression_model = nn.Sequential(*regression_model)
 
@@ -194,15 +202,22 @@ class HybridNN(nn.Module):
                 voxel_features[:, 7:, ...] -= voxel_features[:, :7, ...]
             cnn_result = self.cnn_model(voxel_features)
 
-        if self.model_type == "hybrid":
-            # 2.a if we are in hybrid mode we concat the cnn_result and the other features
-            x = torch.cat((cnn_result, features), dim=1)
-        elif self.model_type == "cnn_only":
-            # 2.b otherwise if we are in cnn only mode we do a final last layer on cnn_result only
-            x = cnn_result
+            if self.model_type == "hybrid":
+                # 2.a if we are in hybrid mode we concat the cnn_result and the other features
+                x = torch.cat((cnn_result, features), dim=1)
+            elif self.model_type == "cnn_only":
+                # 2.b otherwise if we are in cnn only mode we do a final last layer on cnn_result only
+                x = cnn_result
         else:
             # 2.c the last case is == "regression", in that case we forget about voxels completly
             x = features
 
         x = self.regression_model(x)
-        return x
+        if self.num_outputs == 2:
+            x_ddG, x_dTm = x[:, 0], x[:, 1]
+            return x_ddG.unsqueeze(1), x_dTm.unsqueeze(1)
+        elif "ddG" in self.targets:
+            return x, None
+        else:
+            # "dTm" in self.targets
+            return None, x
