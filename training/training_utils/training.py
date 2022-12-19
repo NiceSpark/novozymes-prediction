@@ -156,8 +156,6 @@ def build_scheduler(optimizer, config):
 def k_fold_training(df, config, features, features_infos,
                     device, wandb_active=False, wandb_config={}, keep_models=False):
     training_results = []
-    model_list = [None]*config["kfold"]
-    scaler_list = [None]*config["kfold"]
 
     if wandb_active:
         wandb.init(config=wandb_config)
@@ -181,12 +179,13 @@ def k_fold_training(df, config, features, features_infos,
                                  num_workers=config["num_workers"])
 
         # we load the data for evaluation
-        X_test_voxel, X_test_features, y_test_ddG, y_test_dTm = prepare_eval_data(
-            df_test, config, features, features_infos, dataset_train.X_scaler)
+        X_test_voxel, X_test_features, y_test_ddG, y_test_dTm = prepare_eval_data(df_test, config, features,
+                                                                                  features_infos,
+                                                                                  dataset_train.X_scaler,
+                                                                                  dataset_train.pca_direct)
 
         # Initialize a new Novozymes Model
-        model = HybridNN(
-            len(features_infos["direct_features"]), config)
+        model = HybridNN(config)
         model.to(used_torch_type)
         model.to(device)
 
@@ -221,6 +220,8 @@ def k_fold_training(df, config, features, features_infos,
                 f"tmp/ddG_scaler_{k}.pkl", "wb"))
             dump(dataset_train.dTm_scaler, open(
                 f"tmp/dTm_scaler_{k}.pkl", "wb"))
+            dump(dataset_train.pca_direct, open(
+                f"tmp/pca_direct_{k}.pkl", "wb"))
 
         # end of process for k, freeing memory
         del model

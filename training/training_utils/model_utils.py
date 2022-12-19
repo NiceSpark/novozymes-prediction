@@ -1,6 +1,5 @@
 import random
 import torch
-import shutil
 import os
 import numpy as np
 import pandas as pd
@@ -8,8 +7,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import KFold
 from torch.utils.data import Dataset
-from pickle import load
-from glob import glob
+from cuml import PCA
 
 from .file_utils import open_json
 
@@ -23,24 +21,35 @@ class Hybrid_Dataset(Dataset):
     """
 
     def __init__(self, X: pd.DataFrame, y_ddG: np.ndarray, y_dTm: np.ndarray,
-                 features_infos: dict, reverse_probability: float, use_double=False):
-
-        self.X_scaler = StandardScaler()
-        self.ddG_scaler = StandardScaler()
-        self.dTm_scaler = StandardScaler()
-        # voxel features:
-        self.X_voxel_features = X.pop("direct_voxel_features").to_numpy()
-        # Apply scaling, X now contains all columns except voxel features
-        self.X_features = self.X_scaler.fit_transform(X)
-        # y stays y
-        self.y_ddG = self.ddG_scaler.fit_transform(y_ddG)
-        self.y_dTm = self.dTm_scaler.fit_transform(y_dTm)
+                 features_infos: dict, pca_n_components: int, reverse_probability: float, use_double=False):
 
         self.used_torch_type = torch.double if use_double else torch.float
         self.reverse_probability = reverse_probability
         self.reverse_coef = features_infos["reverse_coef"]
         self.direct_features = features_infos["direct_features"]
         self.indirect_features = features_infos["indirect_features"]
+
+        # scaling and PCA
+        self.X_scaler = StandardScaler()
+        self.ddG_scaler = StandardScaler()
+        self.dTm_scaler = StandardScaler()
+        self.pca_direct = PCA(n_components=pca_n_components)
+        self.pca_indirect = PCA(n_components=pca_n_components)
+        # voxel features:
+        self.X_voxel_features = X.pop("direct_voxel_features").to_numpy()
+        # Apply scaling, X now contains all columns except voxel features
+        self.X_features = self.X_scaler.fit_transform(X)
+        # Apply PCA on regression features
+        # direct mutation features
+        self.X_direct_features = self.pca_direct.fit_transform(
+            self.X_features[:, self.direct_features])
+        # indirect mutation features, we need to reverse the delta features
+        indirect_X = self.X_features[:,
+                                     self.indirect_features]*self.reverse_coef
+        self.X_indirect_features = self.pca_indirect.fit_transform(indirect_X)
+        # y stays y
+        self.y_ddG = self.ddG_scaler.fit_transform(y_ddG)
+        self.y_dTm = self.dTm_scaler.fit_transform(y_dTm)
 
     def __len__(self):
         return len(self.X_features)
@@ -49,21 +58,17 @@ class Hybrid_Dataset(Dataset):
 
         if random.random() > self.reverse_probability:
             # direct mutation
-            if (type(self.X_voxel_features[i]) == type(0.0)
+            if (type(self.X_voxel_features[i]) == np.float64
                     and self.X_voxel_features[i] == 0):
                 x_voxel_features = torch.Tensor()
             else:
                 x_voxel_features = torch.stack([torch.as_tensor(x, dtype=self.used_torch_type)
                                                 for x in self.X_voxel_features[i]])
             x_features = torch.as_tensor(
-                self.X_features[i][self.direct_features], dtype=self.used_torch_type)
+                self.X_direct_features[i], dtype=self.used_torch_type)
             y_ddG = torch.as_tensor(self.y_ddG[i], dtype=self.used_torch_type)
             y_dTm = torch.as_tensor(self.y_dTm[i], dtype=self.used_torch_type)
         else:
-            # indirect mutation, we need to reverse the delta features
-            all_features = self.X_features[i]
-            reverse = np.multiply(all_features, np.array(self.reverse_coef))
-            x_features = reverse[self.indirect_features]
             # we also need to reverse the voxel feature
             # TODO: check that
             x_voxel_features = np.concatenate(
@@ -74,7 +79,7 @@ class Hybrid_Dataset(Dataset):
 
             # to torch tensor
             x_features = torch.as_tensor(
-                x_features, dtype=self.used_torch_type)
+                self.X_indirect_features[i], dtype=self.used_torch_type)
             x_voxel_features = torch.stack([torch.as_tensor(x, dtype=self.used_torch_type)
                                             for x in x_voxel_features])
             y_ddG = torch.as_tensor(y_ddG, dtype=self.used_torch_type)
@@ -176,6 +181,7 @@ def prepare_train_dataset(df: pd.DataFrame, config: dict,
 
     # 2. load the dataset
     dataset = Hybrid_Dataset(X_train, y_train_ddG, y_train_dTm, features_infos,
+                             config["pca_n_components"],
                              reverse_probability=config["reverse_probability"],
                              use_double=config["use_double"])
 
@@ -184,7 +190,7 @@ def prepare_train_dataset(df: pd.DataFrame, config: dict,
 
 def prepare_eval_data(df: pd.DataFrame, config: dict, features: list,
                       features_infos: dict, train_scaler: StandardScaler,
-                      submission=False):
+                      pca_direct: PCA, submission=False):
     """
     prepare the dataset for testing only
     """
@@ -198,8 +204,8 @@ def prepare_eval_data(df: pd.DataFrame, config: dict, features: list,
 
     X_features = df[features]
     X_features = train_scaler.transform(X_features)
-    X_features = torch.from_numpy(X_features)
     X_features = X_features[:, features_infos["direct_features"]]
+    X_features = pca_direct.transform(X_features)
     X_features = torch.as_tensor(X_features, dtype=used_torch_type)
 
     if submission:
@@ -229,7 +235,6 @@ def evaluate_model(X_voxel_features: torch.Tensor, X_features: torch.Tensor,
     scaled_mse_dTm = None
     mse_ddG = 0
     mse_dTm = 0
-
     y_pred_ddG, y_pred_dTm = model(
         X_voxel_features.to(device), X_features.to(device))
 
@@ -344,38 +349,6 @@ def load_dataset(config, features, rm_nan=False):
 
     print(f"loaded {len(df)} data")
     return df
-
-
-def move_models_and_scalers(dir_path: str):
-    # we save models and scalers during training in tmp/,
-    # we now need to move them to the appropriated folder
-    for model_tmp_path in glob("tmp/model*.pth"):
-        shutil.move(model_tmp_path, f"{dir_path}/")
-    for scaler_tmp_path in glob("tmp/scaler*.pkl"):
-        shutil.move(scaler_tmp_path, f"{dir_path}/")
-
-
-def load_models_and_scalers(dir_path: str):
-    model_list, X_scaler_list = [], []
-    ddG_scaler_list, dTm_scaler_list = [], []
-
-    for k in range(len(glob(f"{dir_path}/model_*.pth"))):
-        model_list.append(torch.load(f"{dir_path}/model_{k}.pth"))
-    for k in range(len(glob(f"{dir_path}/X_scaler_*.pkl"))):
-        X_scaler_list.append(load(open(f"{dir_path}/scaler_{k}.pkl", 'rb')))
-    for k in range(len(glob(f"{dir_path}/ddG_scaler_*.pkl"))):
-        ddG_scaler_list.append(
-            load(open(f"{dir_path}/ddG_scaler_{k}.pkl", 'rb')))
-    for k in range(len(glob(f"{dir_path}/dTm_scaler_*.pkl"))):
-        dTm_scaler_list.append(
-            load(open(f"{dir_path}/dTm_scaler_{k}.pkl", 'rb')))
-
-    all_scalers = {
-        "X": X_scaler_list,
-        "ddG": ddG_scaler_list,
-        "dTm": dTm_scaler_list
-    }
-    return model_list, all_scalers
 
 
 def get_device(config):

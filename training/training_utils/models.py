@@ -102,7 +102,7 @@ class HybridNN(nn.Module):
     This model can have multiple targets, ie. up to 2 outputs: ddG and dTm
     """
 
-    def __init__(self, num_features: int, config):
+    def __init__(self, config):
         super().__init__()
         self.voxel_features_difference = config["voxel_features_difference"]
         self.model_type = config["model_type"]
@@ -151,10 +151,11 @@ class HybridNN(nn.Module):
         if self.model_type in ["hybrid", "regression_only"]:
             ##### build regression model #####
             if self.model_type == "hybrid":
-                regression_input_size = cnn_dense_layer_size+num_features
+                regression_input_size = cnn_dense_layer_size + \
+                    config["pca_n_components"]
             else:
                 # regression only
-                regression_input_size = num_features
+                regression_input_size = config["pca_n_components"]
 
             regression_model = [
                 # input layer
