@@ -45,8 +45,8 @@ def train_model(model: nn.Module, config: dict,
         # Iterate over the DataLoader for training data
         for i, data in enumerate(trainloader, 0):
             # losses are initialized as we have multiple targets
-            loss_ddG = torch.zeros(1, requires_grad=True)
-            loss_dTm = torch.zeros(1, requires_grad=True)
+            loss_ddG = torch.zeros(1, requires_grad=True).to(device)
+            loss_dTm = torch.zeros(1, requires_grad=True).to(device)
             # Get and prepare inputs
             voxel_inputs, features_inputs, ddG_targets, dTm_targets = data
             # Move to cuda device
@@ -64,16 +64,18 @@ def train_model(model: nn.Module, config: dict,
             # Perform forward pass
             ddG_outputs, dTm_outputs = model(voxel_inputs, features_inputs)
             # compute ddG and dTm loss
-            if torch.any(not_nan_ddG_targets):
+            if "ddG" in config["targets"] and torch.any(not_nan_ddG_targets):
                 loss_ddG = loss_function(ddG_outputs[not_nan_ddG_targets],
                                          ddG_targets[not_nan_ddG_targets])
 
-            if torch.any(not_nan_dTm_targets):
+            if "dTm" in config["targets"] and torch.any(not_nan_dTm_targets):
                 loss_dTm = loss_function(dTm_outputs[not_nan_dTm_targets],
                                          dTm_targets[not_nan_dTm_targets])
             # Compute global loss
             len_ddG, len_dTm = not_nan_ddG_targets.sum(), not_nan_dTm_targets.sum()
-            loss = ((len_ddG*loss_ddG)+(len_dTm*loss_dTm))/(len_ddG+len_dTm)
+            # if only one target, loss_ddG or loss_dTm is 0
+            loss = ((len_ddG*loss_ddG*(1-config["dTm_loss_coef"]))+(len_dTm*loss_dTm *
+                    config["dTm_loss_coef"]))/(len_ddG+len_dTm)
             # Perform backward pass
             loss.backward()
             # Perform optimization

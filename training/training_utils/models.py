@@ -97,12 +97,21 @@ class ThermoNet2(nn.Module):
 
 
 class HybridNN(nn.Module):
+    """
+    Hybrid model with CNN and FC layers
+    This model can have multiple targets, ie. up to 2 outputs: ddG and dTm
+    """
+
     def __init__(self, num_features: int, config):
         super().__init__()
         self.voxel_features_difference = config["voxel_features_difference"]
         self.model_type = config["model_type"]
 
         # get parameters
+        # targets:
+        self.targets = config["targets"]
+        self.num_outputs = len(self.targets)
+
         # cnn specifics:
         CONV_LAYER_SIZES = [14, 16, 24, 32, 48, 78, 128]
         FLATTEN_SIZES = [0, 5488, 5184, 4000, 3072, 2106, 1024]
@@ -165,27 +174,25 @@ class HybridNN(nn.Module):
                     ) for _ in range(regression_hidden_layers)
                     ]
                 ),
+                # final half layer, gonna be used for all targets
+                nn.Sequential(
+                    nn.Linear(regression_fc_layer_size, int(
+                        regression_fc_layer_size/2)),
+                    nn.ReLU(),
+                    nn.Dropout(regression_dropout),
+                    # last layer
+                    nn.Linear(int(regression_fc_layer_size/2),
+                              self.num_outputs),
+                )
             ]
         else:
             # if model_type is cnn_only, then we want a final linear layer
             regression_model = nn.Sequential(
-                nn.Linear(in_features=cnn_dense_layer_size, out_features=1))
-
-        final_half_layer_model = nn.Sequential(
-            # final half layer, gonna be used for both target
-            nn.Linear(regression_fc_layer_size, int(
-                regression_fc_layer_size/2)),
-            nn.ReLU(),
-            nn.Dropout(regression_dropout),
-            # last layer
-            nn.Linear(int(regression_fc_layer_size/2), 1),
-        )
+                nn.Linear(cnn_dense_layer_size, self.num_outputs))
 
         # store models
         self.cnn_model = nn.Sequential(*cnn_model)
         self.regression_model = nn.Sequential(*regression_model)
-        self.ddG = nn.Sequential(*final_half_layer_model)
-        self.dTm = nn.Sequential(*final_half_layer_model)
 
     def forward(self, voxel_features, features):
 
@@ -195,17 +202,22 @@ class HybridNN(nn.Module):
                 voxel_features[:, 7:, ...] -= voxel_features[:, :7, ...]
             cnn_result = self.cnn_model(voxel_features)
 
-        if self.model_type == "hybrid":
-            # 2.a if we are in hybrid mode we concat the cnn_result and the other features
-            x = torch.cat((cnn_result, features), dim=1)
-        elif self.model_type == "cnn_only":
-            # 2.b otherwise if we are in cnn only mode we do a final last layer on cnn_result only
-            x = cnn_result
+            if self.model_type == "hybrid":
+                # 2.a if we are in hybrid mode we concat the cnn_result and the other features
+                x = torch.cat((cnn_result, features), dim=1)
+            elif self.model_type == "cnn_only":
+                # 2.b otherwise if we are in cnn only mode we do a final last layer on cnn_result only
+                x = cnn_result
         else:
             # 2.c the last case is == "regression", in that case we forget about voxels completly
             x = features
 
         x = self.regression_model(x)
-        x_ddG = self.ddG(x)
-        x_dTm = self.dTm(x)
-        return x_ddG, x_dTm
+        if self.num_outputs == 2:
+            x_ddG, x_dTm = x[:, 0], x[:, 1]
+            return x_ddG.unsqueeze(1), x_dTm.unsqueeze(1)
+        elif "ddG" in self.targets:
+            return x, None
+        else:
+            # "dTm" in self.targets
+            return None, x

@@ -114,6 +114,19 @@ def compute_feature_list(config: dict, features_dict: dict):
                 features.append(feature)
                 index += 1
 
+    if config["ddG_as_input"]:
+        features.append("ddG")
+        reverse_coef.append(1)
+        direct_features.append(index)
+        indirect_features.append(index)
+        index += 1
+    if config["dTm_as_input"]:
+        features.append("dTm")
+        reverse_coef.append(1)
+        direct_features.append(index)
+        indirect_features.append(index)
+        index += 1
+
     features_infos = {
         "reverse_coef": reverse_coef,
         "direct_features": direct_features,
@@ -132,7 +145,7 @@ def split_dataset(df: pd.DataFrame, config):
     else:
         print("no valid ksplit path given, doing ksplit without groups")
         df.reset_index(drop=True, inplace=True)
-        k = 5
+        k = config["kfold"]
         kfold = KFold(k, shuffle=True)
         split = list(kfold.split(range(len(df))))
 
@@ -210,53 +223,71 @@ def evaluate_model(X_voxel_features: torch.Tensor, X_features: torch.Tensor,
     evaluate the model
     X and y must be torch tensors
     """
+    len_ddG = 0
+    len_dTm = 0
+    scaled_mse_ddG = None
+    scaled_mse_dTm = None
+    mse_ddG = 0
+    mse_dTm = 0
+
     y_pred_ddG, y_pred_dTm = model(
         X_voxel_features.to(device), X_features.to(device))
-    y_pred_ddG = y_pred_ddG.cpu().detach().numpy()
-    y_pred_dTm = y_pred_dTm.cpu().detach().numpy()
-
-    y_true_ddG = y_ddG.numpy()
-    y_true_dTm = y_dTm.numpy()
-    scaled_y_true_ddG = dataset_train.ddG_scaler.transform(y_true_ddG)
-    scaled_y_true_dTm = dataset_train.dTm_scaler.transform(y_true_dTm)
-
-    # vstack everything
-    y_pred_ddG = np.vstack(y_pred_ddG)
-    y_pred_dTm = np.vstack(y_pred_dTm)
-    y_true_ddG = np.vstack(y_true_ddG)
-    y_true_dTm = np.vstack(y_true_dTm)
-    scaled_y_true_ddG = np.vstack(scaled_y_true_ddG)
-    scaled_y_true_dTm = np.vstack(scaled_y_true_dTm)
-
-    not_nan_ddG = ~np.isnan(y_true_ddG)
-    not_nan_dTm = ~np.isnan(y_true_dTm)
 
     # we first compute the total mse, by adding the mse from ddG and dTm
     # we can do that here because ddG and dTm are scaled.
-    # Moreover the scaling means that this mse is cannot really be
-    # linked to experimental data
-    len_ddG, len_dTm = not_nan_ddG.sum(), not_nan_dTm.sum()
+    # Moreover the scaling means that this mse cannot really be
+    # linked to experimental data values
 
-    scaled_mse_ddG = mean_squared_error(y_pred_ddG[not_nan_ddG],
-                                        scaled_y_true_ddG[not_nan_ddG]
-                                        ).astype(np.float64)
-    scaled_mse_dTm = mean_squared_error(y_pred_dTm[not_nan_dTm],
-                                        scaled_y_true_dTm[not_nan_dTm]
-                                        ).astype(np.float64)
-    scaled_mse = ((len_ddG*scaled_mse_ddG) +
-                  (len_dTm*scaled_mse_dTm))/(len_ddG+len_dTm)
+    if y_pred_ddG is not None:
+        # to numpy
+        y_pred_ddG = y_pred_ddG.cpu().detach().numpy()
+        y_true_ddG = y_ddG.numpy()
+        scaled_y_true_ddG = dataset_train.ddG_scaler.transform(y_true_ddG)
+        # vstack everything
+        y_pred_ddG = np.vstack(y_pred_ddG)
+        y_true_ddG = np.vstack(y_true_ddG)
+        scaled_y_true_ddG = np.vstack(scaled_y_true_ddG)
+        # non nan ddG
+        not_nan_ddG = ~np.isnan(y_true_ddG)
+        len_ddG = not_nan_ddG.sum()
+        scaled_mse_ddG = mean_squared_error(y_pred_ddG[not_nan_ddG],
+                                            scaled_y_true_ddG[not_nan_ddG]
+                                            ).astype(np.float64)
+        # we now compute ddG MSE, this will not be scaled and make more sens
+        y_pred_ddG = dataset_train.ddG_scaler.inverse_transform(y_pred_ddG)
+        mse_ddG = mean_squared_error(y_pred_ddG[not_nan_ddG],
+                                     y_true_ddG[not_nan_ddG]
+                                     ).astype(np.float64)
 
+    if y_pred_dTm is not None:
+        # to numpy
+        y_pred_dTm = y_pred_dTm.cpu().detach().numpy()
+        y_true_dTm = y_dTm.numpy()
+        scaled_y_true_dTm = dataset_train.dTm_scaler.transform(y_true_dTm)
+        # vstack everything
+        y_pred_dTm = np.vstack(y_pred_dTm)
+        y_true_dTm = np.vstack(y_true_dTm)
+        scaled_y_true_dTm = np.vstack(scaled_y_true_dTm)
+        # non nan ddG
+        not_nan_dTm = ~np.isnan(y_true_dTm)
+        len_dTm = not_nan_dTm.sum()
+        scaled_mse_dTm = mean_squared_error(y_pred_dTm[not_nan_dTm],
+                                            scaled_y_true_dTm[not_nan_dTm]
+                                            ).astype(np.float64)
+        # we now compute dTm MSE, this will not be scaled and make more sens
+        y_pred_dTm = dataset_train.dTm_scaler.inverse_transform(y_pred_dTm)
+        mse_dTm = mean_squared_error(y_pred_dTm[not_nan_dTm],
+                                     y_true_dTm[not_nan_dTm]
+                                     ).astype(np.float64)
+
+    if (scaled_mse_ddG is not None) and (scaled_mse_dTm is not None):
+        scaled_mse = ((len_ddG*scaled_mse_ddG) +
+                      (len_dTm*scaled_mse_dTm))/(len_ddG+len_dTm)
+    elif scaled_mse_ddG is not None:
+        scaled_mse = scaled_mse_ddG
+    else:
+        scaled_mse = scaled_mse_dTm
     # we inverse the transformation to get the real values of ddG and dTm
-    y_pred_ddG = dataset_train.ddG_scaler.inverse_transform(y_pred_ddG)
-    y_pred_dTm = dataset_train.dTm_scaler.inverse_transform(y_pred_dTm)
-
-    # we now compute ddG and dTm MSE, this will not be scaled and make more sens
-    mse_ddG = mean_squared_error(y_pred_ddG[not_nan_ddG],
-                                 y_true_ddG[not_nan_ddG]
-                                 ).astype(np.float64)
-    mse_dTm = mean_squared_error(y_pred_dTm[not_nan_dTm],
-                                 y_true_dTm[not_nan_dTm]
-                                 ).astype(np.float64)
 
     return scaled_mse, mse_ddG, mse_dTm
 
@@ -282,8 +313,18 @@ def load_dataset(config, features, rm_nan=False):
 
     # keep only mutations with adequate ddG value
     # usually mutations are destabilizing, so we guess in the submission dataset they are
-        df = df[((df.ddG <= config.get("max_ddG_value", 0)) |
-                (df.dTm <= config.get("max_dTm_value", 0)))]
+    df = df[((df.ddG <= config.get("max_ddG_value", 0)) |
+            (df.dTm <= config.get("max_dTm_value", 0)))]
+
+    # keep only mutations with adequate targets
+    if config["ddG_as_input"] or config["dTm_as_input"]:
+        df = df[~(df.ddG.isna()) & ~(df.dTm.isna())]
+    elif "ddG" not in config["targets"]:
+        # if ddG not in targets we keep only mutations with dTm values
+        df = df[~(df.dTm.isna())]
+    elif "dTm" not in config["targets"]:
+        # if dTm not in targets we keep only mutations with ddG values
+        df = df[~(df.ddG.isna())]
 
     # apply max protein length
     df = df[df.length.le(config["max_protein_length"])]

@@ -3,10 +3,15 @@
     "dataset_name": "dataset_final_6_12_14_09",
     "features_name": "features_handpicked",
     "model_type": "hybrid",
+    "targets": [
+        "ddG"
+    ],
+    "ddG_as_input": false,
+    "dTm_as_input": true,
     "use_cuda": true,
     "use_pdb_chain_voxel": false,
     "num_workers": 12,
-    "num_epochs": 100,
+    "num_epochs": 30,
     "stop_train_epochs": 100,
     "batch_size": 1024,
     "cnn_dropout": 0.3,
@@ -18,6 +23,7 @@
     "with_final_half_layer": true,
     "with_relu": true,
     "learning_rate": 0.001,
+    "dTm_loss_coef": 0.75,
     "optimizer": "adamw",
     "AdamW_decay": 1.4,
     "scheduler_gamma": 1,
@@ -27,7 +33,7 @@
         40
     ],
     "max_ddG_value": 0.25,
-    "max_dTm_value": 15,
+    "max_dTm_value": 1,
     "voxel_features_difference": true,
     "max_protein_length": 600,
     "reverse_probability": 0,

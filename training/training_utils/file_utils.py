@@ -82,10 +82,10 @@ def log_kfold_training(name, results, config, features, model_structure):
     # plot loss/mse over time for training on whole dataset
     simple_train_results = results["simple_train"]
 
-    best_epoch_avg = sum(x['best_epoch']
-                         for x in simple_train_results)/config["kfold"]
-    best_test_mse_avg = sum(x['best_test_mse']
-                            for x in simple_train_results)/config["kfold"]
+    best_epoch_avg = sum(x.get("best_epoch", 0)
+                         for x in simple_train_results)/int(config["kfold"])
+    best_test_mse_avg = sum(x.get("best_test_mse")
+                            for x in simple_train_results)/int(config["kfold"])
     training_time = sum(x.get('time', 0) for x in simple_train_results)
     loss_list = [x.get("loss_over_time") for x in simple_train_results]
     learning_rate_list = [x.get("learning_rate_over_time")
@@ -97,7 +97,7 @@ def log_kfold_training(name, results, config, features, model_structure):
     test_mse_dTm_list = [x.get("test_mse_dTm_over_time")
                          for x in simple_train_results]
     if (test_mse_list[0] is not None and loss_list[0] is not None):
-        colors = ['r', 'c', 'b', 'm', 'y']
+        colors = ['r', 'c', 'b', 'm', 'y', 'r--', 'c--', 'b--', 'm--', 'y--']
 
         plt.figure(figsize=(20, 8))
         plt.title(
