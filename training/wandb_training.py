@@ -7,10 +7,10 @@ import os
 
 from training_utils.file_utils import open_json
 from training_utils.model_utils import *
-from training_utils.training import k_fold_training
+from training_utils.training_nn import k_fold_training_nn
 
 
-config = open_json("hybrid_nn_config.json")
+config = open_json("config_hybrid_nn.json")
 sweep_config = open_json("wandb_sweep_config.json")
 features_dict = open_json(
     f"{config['dataset_dir']}/{config['features_name']}.json")
@@ -48,7 +48,7 @@ main_df = load_dataset(global_config, features, rm_nan=True)
 def run():
     # add protein_index to the dataset and get ksplit:
     df = split_dataset(main_df, global_config)
-    _ = k_fold_training(
+    _ = k_fold_training_nn(
         df, global_config, features,
         features_infos, device, wandb_active=True,
         wandb_config=sweep_config)
