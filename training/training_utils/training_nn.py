@@ -153,7 +153,7 @@ def build_scheduler(optimizer, config):
     return scheduler
 
 
-def k_fold_training(df, config, features, features_infos,
+def k_fold_training_nn(df, config, features, features_infos,
                     device, wandb_active=False, wandb_config={}, keep_models=False):
     training_results = []
 
