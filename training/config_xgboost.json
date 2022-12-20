@@ -1,0 +1,140 @@
+{
+    "dataset_dir": "../data/main_dataset_creation/outputs/merged",
+    "dataset_name": "dataset_final_6_12_14_09",
+    "features_name": "features",
+    "model_type": "xgboost",
+    "n_estimators": 500,
+    "max_depth": 7,
+    "learning_rate": 0.1,
+    "num_workers": 12,
+    "targets": [
+        "ddG"
+    ],
+    "ddG_as_input": false,
+    "dTm_as_input": false,
+    "pca_n_components": 64,
+    "max_ddG_value": 0.25,
+    "max_dTm_value": 1.5,
+    "max_protein_length": 600,
+    "reverse_probability": 0,
+    "kfold": 10,
+    "group_kfold": false,
+    "ksplit_path": "",
+    "num_worst_samples": 10,
+    "bad_uniprot": [
+        "O61594",
+        "P07445",
+        "P00974",
+        "P0AA25"
+    ],
+    "features_config": {
+        "identification": {
+            "use": false,
+            "category": "global"
+        },
+        "paths": {
+            "use": false,
+            "category": "global"
+        },
+        "basics": {
+            "use": true,
+            "category": "global"
+        },
+        "blosum": {
+            "use": true,
+            "category": "global"
+        },
+        "direct_demask": {
+            "use": true,
+            "category": "global"
+        },
+        "indirect_demask": {
+            "use": true,
+            "category": "global"
+        },
+        "wild_protein_analysis": {
+            "use": true,
+            "category": "global"
+        },
+        "mutated_protein_analysis": {
+            "use": true,
+            "category": "global"
+        },
+        "mutation_protein_analysis": {
+            "use": true,
+            "category": "delta"
+        },
+        "alphafold_3D_structure_analysis": {
+            "use": true,
+            "category": "global"
+        },
+        "wild_relaxed_3D_structure_analysis": {
+            "use": true,
+            "category": "global"
+        },
+        "mutated_relaxed_3D_structure_analysis": {
+            "use": true,
+            "category": "global"
+        },
+        "mutation_3D_structure_analysis": {
+            "use": true,
+            "category": "delta"
+        },
+        "alphafold_dssp_3D_analysis": {
+            "use": true,
+            "category": "global"
+        },
+        "wild_relaxed_dssp_3D_analysis": {
+            "use": true,
+            "category": "global"
+        },
+        "mutated_relaxed_dssp_3D_analysis": {
+            "use": true,
+            "category": "global"
+        },
+        "mutation_dssp_3D_analysis": {
+            "use": true,
+            "category": "delta"
+        },
+        "esm_pca_pool": {
+            "use": true,
+            "category": "global"
+        },
+        "esm_pca_wild": {
+            "use": true,
+            "category": "global"
+        },
+        "esm_pca_mutant": {
+            "use": true,
+            "category": "global"
+        },
+        "esm_pca_local": {
+            "use": true,
+            "category": "delta"
+        },
+        "esm_global": {
+            "use": true,
+            "category": "global"
+        },
+        "alphafold_rosetta_scores": {
+            "use": true,
+            "category": "global"
+        },
+        "wild_relaxed_rosetta_scores": {
+            "use": true,
+            "category": "global"
+        },
+        "mutated_relaxed_rosetta_scores": {
+            "use": true,
+            "category": "global"
+        },
+        "mutation_rosetta_scores": {
+            "use": true,
+            "category": "delta"
+        },
+        "target": {
+            "use": false,
+            "category": "global"
+        }
+    }
+}
