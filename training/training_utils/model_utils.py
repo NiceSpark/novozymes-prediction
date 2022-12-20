@@ -169,7 +169,7 @@ def split_dataset(df: pd.DataFrame, config):
 def prepare_train_dataset(df: pd.DataFrame, config: dict,
                           features: list, features_infos: dict):
     """
-    prepare the dataset
+    prepare the dataset for Hybrid model
     NB: We do not split the data into train/test here, see split_dataset function
     """
     used_type = np.float64 if config["use_double"] else np.float32
@@ -186,6 +186,25 @@ def prepare_train_dataset(df: pd.DataFrame, config: dict,
                              use_double=config["use_double"])
 
     return dataset
+
+
+def prepare_xgboost_data(df: pd.DataFrame, features: list, features_infos: dict,
+                         scaler: StandardScaler, fit_scaler=False):
+    """
+    prepare the dataset for xgboost
+    NB: We do not split the data into train/test here, see split_dataset function
+    """
+    # 1. create X,y:
+    X = df[features]
+    if fit_scaler:
+        X = scaler.fit_transform(X)
+    else:
+        X = scaler.transform(X)
+    X = X[:, features_infos["direct_features"]]
+    y_ddG = df[["ddG"]].values
+    y_dTm = df[["dTm"]].values
+
+    return X, y_ddG, y_dTm
 
 
 def prepare_eval_data(df: pd.DataFrame, config: dict, features: list,

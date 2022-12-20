@@ -5,6 +5,7 @@ import shutil
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
+import xgboost as xg
 from datetime import datetime
 from pickle import load
 from glob import glob
@@ -15,7 +16,7 @@ from .file_utils import open_json, write_json
 def move_models_and_scalers(dir_path: str):
     # we save models and scalers during training in tmp/,
     # we now need to move them to the appropriated folder
-    for model_tmp_path in glob("tmp/model*.pth"):
+    for model_tmp_path in glob("tmp/model*"):
         shutil.move(model_tmp_path, f"{dir_path}/")
     for scaler_tmp_path in glob("tmp/X_scaler*.pkl"):
         shutil.move(scaler_tmp_path, f"{dir_path}/")
@@ -32,16 +33,28 @@ def load_models_and_scalers(dir_path: str):
     ddG_scaler_list, dTm_scaler_list = [], []
     all_pca_directs = []
 
-    for k in range(len(glob(f"{dir_path}/model_*.pth"))):
-        model_list.append(torch.load(f"{dir_path}/model_{k}.pth"))
+    if "xgboost" in dir_path:
+        # load xgboost model from json file
+        for k in range(len(glob(f"{dir_path}/model_*.json"))):
+            model = xg.XGBRegressor()
+            model.load_model(f"{dir_path}/model_{k}.json")
+            model_list.append(model)
+    else:
+        # load pytorch model from pth file
+        for k in range(len(glob(f"{dir_path}/model_*.pth"))):
+            model_list.append(torch.load(f"{dir_path}/model_{k}.pth"))
+    # load X scaler
     for k in range(len(glob(f"{dir_path}/X_scaler_*.pkl"))):
         X_scaler_list.append(load(open(f"{dir_path}/X_scaler_{k}.pkl", 'rb')))
+    # load ddG scaler
     for k in range(len(glob(f"{dir_path}/ddG_scaler_*.pkl"))):
         ddG_scaler_list.append(
             load(open(f"{dir_path}/ddG_scaler_{k}.pkl", 'rb')))
+    # load dTm scaler
     for k in range(len(glob(f"{dir_path}/dTm_scaler_*.pkl"))):
         dTm_scaler_list.append(
             load(open(f"{dir_path}/dTm_scaler_{k}.pkl", 'rb')))
+    # load pca
     for k in range(len(glob(f"{dir_path}/pca_direct_*.pkl"))):
         all_pca_directs.append(
             load(open(f"{dir_path}/pca_direct_{k}.pkl", 'rb')))
@@ -112,77 +125,87 @@ def log_kfold_training(name, results, config, features, model_structure):
     timestamp = date_time.strftime("%Y-%m-%d_%H-%M-%S")
     dir_num = len(glob(f"./outputs/{name}_*/"))
     dir_path = f"./outputs/{name}_{dir_num}"
-
-    # add timestamp to all_training_results
-    results = {"timestamp": timestamp, **results}
-    config = {"timestamp": timestamp, **config}
+    colors = ['r', 'c', 'b', 'm', 'y', 'r--', 'c--', 'b--', 'm--', 'y--']
 
     # create output subdir
     os.mkdir(dir_path)
 
     # log json infos
-    write_json(f"{dir_path}/results.json", results)
-    write_json(f"{dir_path}/config.json", config)
+    write_json(f"{dir_path}/results.json",
+               {"timestamp": timestamp, "results": results})
+    write_json(f"{dir_path}/config.json", {"timestamp": timestamp, **config})
     write_json(f"{dir_path}/features.json", features)
-    write_json(f"{dir_path}/model_structure.json", model_structure)
+    if model_structure:
+        write_json(f"{dir_path}/model_structure.json", model_structure)
 
     # plot loss/mse over time for training on whole dataset
-    simple_train_results = results["simple_train"]
-
-    best_epoch_avg = sum(x.get("best_epoch", 0)
-                         for x in simple_train_results)/int(config["kfold"])
-    best_test_mse_avg = sum(x.get("best_test_mse")
-                            for x in simple_train_results)/int(config["kfold"])
-    training_time = sum(x.get('time', 0) for x in simple_train_results)
-    loss_list = [x.get("loss_over_time") for x in simple_train_results]
-    learning_rate_list = [x.get("learning_rate_over_time")
-                          for x in simple_train_results]
-    test_mse_list = [x.get("test_mse_over_time")
-                     for x in simple_train_results]
-    test_mse_ddG_list = [x.get("test_mse_ddG_over_time")
-                         for x in simple_train_results]
-    test_mse_dTm_list = [x.get("test_mse_dTm_over_time")
-                         for x in simple_train_results]
-    if (test_mse_list[0] is not None and loss_list[0] is not None):
-        colors = ['r', 'c', 'b', 'm', 'y', 'r--', 'c--', 'b--', 'm--', 'y--']
-
+    if config["model_type"] != "xgboost":
+        # get data
+        best_epoch_avg = sum(x.get("best_epoch", 0)
+                             for x in results)/int(config["kfold"])
+        best_test_mse_avg = sum(x.get("best_test_mse", 0)
+                                for x in results)/int(config["kfold"])
+        training_time = sum(x.get('time', 0) for x in results)
+        loss_list = [x.get("loss_over_time", 0) for x in results]
+        test_mse_list = [x.get("test_mse_over_time", 0) for x in results]
+        test_mse_ddG_list = [x.get("test_mse_ddG_over_time", 0)
+                             for x in results]
+        test_mse_dTm_list = [x.get("test_mse_dTm_over_time", 0)
+                             for x in results]
+        # plot the loss, mse, mse_ddG, mse_dTm over time
         plt.figure(figsize=(20, 8))
         plt.title(
             f"Training Results on {config['dataset_name']} for {name}_{dir_num}")
         plt.suptitle(
             f"{best_test_mse_avg= :.2f}, {best_epoch_avg= :.2f}, {training_time= :.2f}")
-
-        # plt.subplot(1, 3, 1)
-        # plt.title("learning rate over time")
-        # for i, lr in enumerate(learning_rate_list):
-        #     plt.plot(lr, colors[i], label=f"learning_rate_{i}")
-
         plt.subplot(1, 4, 1)
         plt.title("loss over time")
         for i, loss in enumerate(loss_list):
             plt.plot(loss, colors[i], label=f"loss_{i}")
-
         plt.subplot(1, 4, 2)
         plt.title("test_mse_ddG_over_time")
         for i, test_mse_ddG in enumerate(test_mse_ddG_list):
             plt.plot(test_mse_ddG, colors[i], label=f"test_mse_ddG_{i}")
-
         plt.subplot(1, 4, 3)
         plt.title("test_mse_dTm_over_time")
         for i, test_mse_dTm in enumerate(test_mse_dTm_list):
             plt.plot(test_mse_dTm, colors[i], label=f"test_mse_dTm_{i}")
-
         plt.subplot(1, 4, 4)
         plt.title("test mse over time")
         for i, test_mse in enumerate(test_mse_list):
             plt.plot(test_mse, colors[i], label=f"test_mse_{i}")
 
+        # save figure to dir_path
         plt.savefig(f"{dir_path}/results.jpg")
 
-    # plot feature importance
-    models, _, _ = load_models_and_scalers("tmp")
-    plot_feature_weight(config, models, f"{dir_path}/features_importance.png", regression_only=(
-        "regression_only" in config["model_type"]))
+        # plot feature importance
+        models, _, _ = load_models_and_scalers("tmp")
+        plot_feature_weight(config, models, f"{dir_path}/features_importance.png", regression_only=(
+            "regression_only" in config["model_type"]))
+    else:
+        # get data
+        avg_train_mse = sum(x.get("train_mse", 0)
+                            for x in results)/int(config["kfold"])
+        avg_test_mse = sum(x.get("test_mse", 0)
+                           for x in results)/int(config["kfold"])
+
+        # plot results for xgboost
+        plt.figure(figsize=(10, 4))
+        plt.title(
+            f"Training Results on {config['dataset_name']} for {name}_{dir_num}")
+        plt.suptitle(
+            f"{avg_train_mse= :.2f}, {avg_test_mse= :.2f}")
+        plt.subplot(1, 2, 1)
+        plt.title("train mse")
+        for i, train_mse in enumerate([x.get("train_mse") for x in results]):
+            plt.plot(train_mse, colors[i]+'o', label=f"train_mse_{i}")
+        plt.subplot(1, 2, 2)
+        plt.title("test mse")
+        for i, test_mse in enumerate([x.get("test_mse") for x in results]):
+            plt.plot(test_mse, colors[i]+'o', label=f"test_mse_{i}")
+        # save figure to dir_path
+        plt.savefig(f"{dir_path}/results.jpg")
+
     return dir_path
 
 
