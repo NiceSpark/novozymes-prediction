@@ -2,31 +2,364 @@
 
 [Kaggle competition overview page](https://www.kaggle.com/competitions/novozymes-enzyme-stability-prediction/overview)
 
-## Dataset Description
+# Report 26_11
 
-In this competition, you are asked to develop models that can predict the ranking of protein thermostability (as measured by melting point, tm) after single-point amino acid mutation and deletion.
+<details>
+<summary>Protein mutation stability</summary>
 
-For the training set, the protein thermostability (experimental melting temperature) data includes natural sequences, as well as engineered sequences with single or multiple mutations upon the natural sequences. The data are mainly from different sources of published studies such as Meltome atlas—thermal proteome stability across the tree of life. Many other public datasets exist for protein stability; please see the competition Rule 7C for external data usage requirements. There are also other publicly available methods which can predict protein stabilities such as ESM, EVE and Rosetta etc., without using the provided training set. These methods may also be used as part of the competition.
+# Protein mutation stability
 
-The test set contains experimental melting temperature of over 2,413 single-mutation variant of an enzyme (GenBank: KOC15878.1), obtained by Novozymes A/S. The amino acid sequence of the wild type is:
+Novozyme (company behind competition): produce enzymes for industry
 
-VPVNPEPDATSVENVALKTGSGDSQSDPIKADLEVKGQSALPFDVDCWAILCKGAPNVLQRVNEKTKNSNRDRSGANKGPFKDPQKWGIKALPPKNPSWSAQDFKSPEEYAFASSLQGGTNAILAPVNLASQNSQGGVLNGFYSANKVAQFDPSKPQQTKGTWFQITKFTGAAGPYCKALGSNDKSVCDKNKNIAGDWGFDPAKWAYQYDEKNNKFNYVGK
-Files
+Proteins are what makes everything work in a cell/bacteria/yeast : they move stuff, capture stuff, assemble stuff, break down stuff. (Enzymes are proteins with catalyzing abilities.)
 
-**train.csv** - the training data, with columns as follows:
-seq_id: unique identifier of each protein variants
-protein_sequence: amino acid sequence of each protein variant. The stability (as measured by tm) of protein is determined by its protein sequence. (Please note that most of the sequences in the test data have the same length of 221 amino acids, but some of them have 220 because of amino acid deletion.)
-pH: the scale used to specify the acidity of an aqueous solution under which the stability of protein was measured. Stability of the same protein can change at different pH levels.
-data_source: source where the data was published
-tm: target column. Since only the spearman correlation will be used for the evaluation, the correct prediction of the relative order is more important than the absolute tm values. (Higher tm means the protein variant is more stable.)
+![Untitled](doc/readme_images/Untitled.png)
 
-**train_updates_20220929.csv** - corrected rows in train, please see this forum post for details
+Proteins are created by assembling Amino Acids, they then usually fold in order to be efficient.
+By protein stability we mean < **stability** (not chemical) ie. is the protein in the right 3D state to be effective. When temperature becomes too high the protein “melt” ⇒ becomes unstable/denatured.
 
-**test.csv** - the test data; your task is to predict the target tm for each protein_sequence (indicated by a unique seq_id)
+![Untitled](doc/readme_images/Untitled%201.png)
 
-**sample_submission.csv** - a sample submission file in the correct format, with seq_id values corresponding to test.csv
+Proteins can be **modified**, meaning we can change their amino acid composition, in order to obtain new functionalities. But **those mutations also have an impact on the stability** of the protein**.**
 
-**wildtype_structure_prediction_af2.pdb** - the 3 dimensional structure of the enzyme listed above, as predicted by AlphaFold
+**The goal is to be able to give the difference in stability of a protein for any mutation.**
+
+Example: I changed the amino acid on position 14 from Glycine to Alanine, is the protein going to be more or less stable ? = What is the new melting temperature.
+
+- We use ΔΔG as the measure of stability (Δ of free Gibson energy) goal: we change Glycine to Alanine, what is the ΔΔG of this mutation.
+- We can also use ΔTm, which is the difference in melting temperature (Tm) of a mutation
+
+![competition_data_explained.png](doc/readme_images/competition_data_explained.png)
+
+</details>
+
+---
+
+<details>
+<summary>Data</summary>
+
+# Data
+
+There a some data available that link protein mutation with a measure of stability change (ΔΔG, ΔTm). I got ~10k distinct measure, from which ~7k got at least ΔΔG, and ~3k have only ΔTm.
+
+⇒ That’s a **low** quantity of data, some people in the competition got more, but I checked and I think they got duplicates, and no one seems to have 20k+ measures.
+
+⇒ Some dataset are manually curated, some are not, 10k is the number with **all** data (including not curated)
+
+**🧠 idea:** I got ~1k data with both ΔΔG and ΔTm, maybe I could have a model that takes features+ΔTm and outputs ΔΔG ⇒ this could give me 3k more measures.
+
+![dataset_creation_flowchart.drawio.png](doc/readme_images/dataset_creation_flowchart.drawio.png)
+
+</details>
+
+---
+
+<details>
+<summary>Features</summary>
+
+# Features
+
+In order to merge all different dataset I got:
+
+- the protein unique identifier (sometimes after looking at a not so unique identifier, or sequence)
+- the measure (ΔΔG, ΔTm or just Tm)
+- the associated pH of the experiment
+- the mutation position
+- the mutated amino acid
+
+Then based on the unique protein id I went on to collect data on the protein (sequence) and the 3D structure (as predicted by alphafold).
+And then I computed a bunch of features based on the sequence and the 3D structure. (I did compute an approximation of each mutated protein 3D structure based on the mutation position/amino acid and the alphafold.
+
+3D alphafold
+
+3D “relaxed”
+
+3D ‘relaxed mutated”
+
+**Notable Feature categories**:
+
+- **ESM embeddings**: model (transformer) that takes protein sequence and tells stuff about it, already trained, we do an inference and keep the last layer (~ 1200 parameters) we then do a PCA to reduce the number to 32 (pool) and 16 (for wild and mutant + we compute the Δ between the 2)
+- **Rosetta Scores:** tool that takes a 3D structure model and gives a score related to the stability
+- **ThermoNet:** Convolutional model that takes both wild and mutated 3D models (in reality voxel representation of the models) and outputs ΔΔG ⇒ supposed to have **1 RMSE** on ΔΔG, **got 8 MeanSquarredError ~3** ΔΔG (kcal/mol) **RootMSE** ❓❓⇒ trained again (small change in 3D models) on my own dataset.
+- **DeMaSk:** score based on the known proteins that look similar to ours, it takes our protein sequence, look at all sequences that looks the same, and tell us that at position 25 amino acid Gly is very frequent in sequence that look the same
+- **3D structure analysis:** we look at the 3D structure and can say that this atom is in the center of the structure or close from the outside of it + other factors, again we computed those features on both the wild and mutated structure, and then computed the delta of it as well.
+
+![Features_Summary.png](doc/readme_images/Features_Summary.png)
+
+- Right now I have the following features:
+    <details>
+        <summary>Features</summary>
+
+        - identification:
+            uniprot
+            dataset_source
+            alphafold_path
+            wild_aa
+            mutated_aa
+        - basics:
+            wild_aa_int
+            mutated_aa_int
+            mutated_chain_int
+            mutation_position
+            length
+            chain_start
+            chain_end
+            sequence
+            pH
+        - blosum:
+            blosum62
+            blosum80
+            blosum90
+            blosum100
+        - demask (direct & indirect):
+            demask_entropy
+            demask_log2f_var
+            demask_matrix
+            demask_score
+        - protein_analysis (wild, mutated, Δmutation):
+            aromaticity
+            charge_at_pH
+            flexibility
+            gravy
+            helix_fraction
+            isoelectric_point
+            instability_index
+            molecular_weight
+            molar_extinction_1
+            molar_extinction_2
+            sheet_fraction
+            turn_fraction
+        - 3D_structure_analysis (alphafold, wild, mutated, Δ mutation):
+            sasa
+            residue_depth
+            c_alpha_depth
+            bfactor
+        - dssp_3D_analysis (alphafold, wild, mutated, Δ mutation):
+            Secondary_structure
+            Relative_ASA
+            Phi
+            Psi
+            NH->O_1_relidx
+            NH->O_1_energy
+            O->NH_1_relidx
+            O->NH_1_energy
+            NH->O_2_relidx
+            NH->O_2_energy
+            O->NH_2_relidx
+            O->NH_2_energy
+        - rosetta_scores (wild, mutated, Δ mutation):
+            dslf_fa13
+            fa_atr
+            fa_dun
+            fa_elec
+            fa_intra_rep
+            fa_intra_sol_xover4
+            fa_rep
+            fa_sol
+            hbond_bb_sc
+            hbond_lr_bb
+            hbond_sc
+            hbond_sr_bb
+            linear_chainbreak
+            lk_ball_wtd
+            omega
+            overlap_chainbreak
+            p_aa_pp
+            pro_close
+            rama_prepro
+            ref
+            yhh_planarity
+            total_score
+        - esm_pca_pool:
+            esm_pca_pool_0 to esm_pca_pool_31
+        - esm_pca_wild:
+            esm_pca_wild_0 to esm_pca_wild_15
+        - esm_pca_mutant:
+            esm_pca_mutant_0 to esm_pca_mutant_15
+        - Δ esm_pca_local:
+            esm_pca_local_0 to esm_pca_local_15
+        - esm_global:
+            esm_mutation_probability
+            esm_mutation_entropy
+        - target:
+            ddG
+            dTm
+            Tm
+
+    </details>
+  </details>
+
+---
+
+<details>
+<summary>First results</summary>
+
+# First results
+
+## Simple Neural Network
+
+We take some (not all) features, we put them in a NN and see what happens.
+
+We have a 5 splits of the data, meaning that for predictions we compute the avg of the 5 models trained on each split.
+
+Results:
+
+![training_results.jpg](doc/readme_images/training_results.jpg)
+
+- Obtained with the following model structure:
+
+  - Linear(131, 64)
+  - ReLU
+  - Dropout(0.25)
+  - Linear(64, 64)
+  - ReLU
+  - Dropout(0.25)
+  - Linear(64,2)
+  - Linear(**2**,1)
+
+- can reach an avg mse of ~3 MSE with ΔΔG as a target (so rmse of ~1.7).
+- on Kaggle obtains a spearman rank of 0.42
+
+⇒ normalize before mse
+
+### Parameters importance
+
+![SimpleNN_feature_importance_histogram.png](doc/readme_images/SimpleNN_feature_importance_histogram.png)
+
+- top 10 parameters:
+  - esm_pca_pool_1: 1.33
+  - mutation_fa_intra_rep: 1.14
+  - esm_pca_pool_19: 1.08
+  - mutation_NH->O_1_relidx: 1.03
+  - esm_pca_pool_4: 0.96
+  - pH: 0.84
+  - esm_pca_pool_2: 0.84
+  - mutation_fa_rep: 0.79
+  - mutation_pro_close: 0.70
+  - esm_pca_pool_26: 0.67
+
+⇒ There seem to have a bunch of unused features, even though I know some of them can be relevant
+
+### Learning curve
+
+![learning_curve.jpg](doc/readme_images/learning_curve.jpg)
+
+### Hyper parameters tuning
+
+I tried different neural network structure, and then ended up doing some sweep.
+The graph show that is mostly random, at first I thought this was due to the fact that the ksplit was giving very different result, but after fixing it I still end up with what looks mostly random.
+
+### random ksplit
+
+- graph
+  ![randomKsplit_graph.png](doc/readme_images/randomKsplit_graph.png)
+- parameters importance
+  ![randomKsplit_parameters_importance.png](doc/readme_images/randomKsplit_parameters_importance.png)
+- test mse v created
+  ![randomKsplit_testMSE_v_created.png](doc/readme_images/randomKsplit_testMSE_v_created.png)
+- test_mse(epochs)
+  ![randomKsplit_testMSE.png](doc/readme_images/randomKsplit_testMSE.png)
+- train_mse(epochs)
+  ![randomKsplit_trainMSE.png](doc/readme_images/randomKsplit_trainMSE.png)
+- loss(epochs)
+  ![randomKsplit_loss.png](doc/readme_images/randomKsplit_loss.png)
+
+### fixed ksplit
+
+- graph
+  ![fixedKsplit_graph.png](doc/readme_images/fixedKsplit_graph.png)
+- parameters importance
+  ![fixedKsplit_parameters_importance.png](doc/readme_images/fixedKsplit_parameters_importance.png)
+- test mse v created
+  ![fixedKsplit_testMSE_v_created.png](doc/readme_images/fixedKsplit_testMSE_v_created.png)
+- test_mse(epochs)
+  ![fixedKsplit_testMSE.png](doc/readme_images/fixedKsplit_testMSE.png)
+- train_mse(epochs)
+  ![fixedKsplit_trainMSE.png](doc/readme_images/fixedKsplit_trainMSE.png)
+- loss(epochs)
+  ![fixedKsplit_loss.png](doc/readme_images/fixedKsplit_loss.png)
+
+## </details>
+
+---
+
+<details>
+<summary>Hybrid model</summary>
+
+To try and improve our result we tried to use both a CNN model able to learn from the voxel representation of the 3D structure from the protein (before and after mutation) in the same way as ThermoNet, and then in a later step add the computed features (such as blosum, demask, dssp etc.) to the "features" from the last layer of the CNN. We then concatenate those features together and put it through a regression model.
+
+![Hybrid_model.png](doc/Hybrid_model.png)
+
+We attained better result than with cnn only or regression only (the code allow different model type to be trained, by simply specifying the model_type in the config file, "cnn_only" will trained a model very close to the one from ThermoNet, "regression_only" will not use voxel at all).
+
+![Hybrid_result.jpg](doc/Training_results/hybrid_results.jpg)
+
+  <details>
+  <summary>Hybrid model structure</summary>
+  see [models.py](training/training_utils/models.py)
+  
+  - cnn_model: Sequential,
+    - 0: Conv3d14, 16, kernel_size=3, 3, 3, stride=1, 1, 1,
+    - 1: ReLU,
+    - 0: Conv3d16, 24, kernel_size=3, 3, 3, stride=1, 1, 1,
+    - 1: ReLU,
+    - 0: Conv3d24, 32, kernel_size=3, 3, 3, stride=1, 1, 1,
+    - 1: ReLU,
+    - 0: Conv3d32, 48, kernel_size=3, 3, 3, stride=1, 1, 1,
+    - 1: ReLU,
+    - 0: Conv3d48, 78, kernel_size=3, 3, 3, stride=1, 1, 1,
+    - 1: ReLU,
+    - 1: MaxPool3dkernel_size=2, 2, 2, stride=2, 2, 2, padding=0, dilation=1, ceil_mode=False,
+    - 2: Flattenstart_dim=1, end_dim=-1,
+    - 0: Dropoutp=0.3, inplace=False,
+    - 1: Linearin_features=2106, out_features=32, bias=True,
+    - 2: ReLU,
+    - 3: Dropoutp=0.3, inplace=False,
+  - regression_model: Sequential,
+    - 0: Flattenstart_dim=1, end_dim=-1,
+    - 1: Linearin_features=182, out_features=256, bias=True,
+    - 2: ReLU,
+    - 3: Dropoutp=0.5, inplace=False,
+    - 4: Linearin_features=256, out_features=256, bias=True,
+    - 5: ReLU,
+    - 6: Dropoutp=0.5, inplace=False,
+    - 7: Linearin_features=256, out_features=256, bias=True,
+    - 8: ReLU,
+    - 9: Dropoutp=0.5, inplace=False,
+    - 10: Linearin_features=256, out_features=256, bias=True,
+    - 11: ReLU,
+    - 12: Dropoutp=0.5, inplace=False,
+    - 13: Linearin_features=256, out_features=128, bias=True,
+    - 14: ReLU,
+    - 15: Dropoutp=0.5, inplace=False,
+    - 16: Linearin_features=128, out_features=1, bias=True,
+  
+  </details>
+
+</details>
+
+---
+
+<details>
+<summary>XGBoost</summary>
+In the same way that we can switch between CNN_only, regression_only or hybrid for the model type, we can also choose "xgboost"
+This is similar to the regression only, only this time implemented with an optimized distributed gradient boosting model instead of a neural network.
+
+[xgboost documentation](https://xgboost.readthedocs.io/en/stable/)
+
+The xgboost outperforms slightly the regression_only neural network model in the leaderboard, although it does not perform an hybrid model.
+
+</details>
+
+---
+
+<details>
+<summary>Code structure</summary>
+The project
+
+</details>
+
+---
 
 ## Resources:
 
@@ -47,3 +380,8 @@ https://biopython.org/docs/1.76/api/Bio.PDB.DSSP.html
 Relative SASA is computed using [FreeSASA](https://freesasa.github.io/) and [ssbio wiki page about freesasa](https://ssbio.readthedocs.io/en/latest/instructions/freesasa.html).
 
 Residue Depth is computed using [MSMS](https://ccsb.scripps.edu/msms/) see [ssbio on how to install msms](https://ssbio.readthedocs.io/en/latest/instructions/msms.html)
+
+## Virtual environment
+
+This project use pipenv to handle the dependencies, although in some devices (notably GCP compute engine) the installation of pytorch was done directly.
+[See pipenv documentation](https://pipenv.pypa.io/en/latest/)
