@@ -6,11 +6,11 @@
 
 - The project is constituted for the most part in jupyter notebooks and python script aimed at creating a global dataset which merges multiple source of experimental data for both ddG and dTm values, all linked to protein mutations.
 - Therefore at the root of the project there are 6 jupyter notebooks aimed at using the experimental results that can be found online and are locally stored in data/ (see [data sources.csv](data/sources.csv)).
-- The output of the jupyter notebooks at the root of the project will then be stored in a folder in [data/main_dataset_creation/outputs/](data/main_dataset_creation/outputs/).
+- The output of the jupyter notebooks at the root of the project will then be stored in a folder in data/main_dataset_creation/outputs/.
 - In order to compute the different features used we need to have the 3D structure (we use alphafold2 predicted structures), but also the relaxed structure computed with the rosetta software (The purpose of Rosetta's relax mode is to lower the energy of a structure by making small adjustements to the backbone and sidechain torsion angles) for both wild and mutated protein sequences. The code to do this is in [compute_mutated_structures](compute_mutated_structures/)
-  => This computation of the mutated structure is quite heavy, I ended up using free Google Cloud Platform credits and do it on a 32 vCPUs machine.
+  => This computation of the mutated structure is quite heavy, I ended up using free Google Cloud Platform credits to do it on a 32 vCPUs machine.
 - Finally the code in the [training folder](training/) notably [the train notebook](training/train.ipynb) use the dataset with features from data/main_dataset_creation and the computed 3D structures in compute_mutated_structures (in the case of a cnn_only or hybrid model) to both train a model, compute the learning curve and compute the submission results.
-- Each training is logged (with results, graphs and models+scaler if specified) in [training/outputs](training/outputs/)
+- Each training is logged (with results, graphs and models+scaler if specified) in training/outputs
 - In order to do hyperparameter tuning we used wandb for visualization and optuna (or wandb sweep) for finding optimums.
 
 ---
@@ -260,21 +260,6 @@ Results:
 I tried different neural network structure, and then ended up doing some sweep.
 The graph show that is mostly random, at first I thought this was due to the fact that the ksplit was giving very different result, but after fixing it I still end up with what looks mostly random.
 
-### random ksplit
-
-- graph
-  ![randomKsplit_graph.png](doc/readme_images/randomKsplit_graph.png)
-- parameters importance
-  ![randomKsplit_parameters_importance.png](doc/readme_images/randomKsplit_parameters_importance.png)
-- test mse v created
-  ![randomKsplit_testMSE_v_created.png](doc/readme_images/randomKsplit_testMSE_v_created.png)
-- test_mse(epochs)
-  ![randomKsplit_testMSE.png](doc/readme_images/randomKsplit_testMSE.png)
-- train_mse(epochs)
-  ![randomKsplit_trainMSE.png](doc/readme_images/randomKsplit_trainMSE.png)
-- loss(epochs)
-  ![randomKsplit_loss.png](doc/readme_images/randomKsplit_loss.png)
-
 ### fixed ksplit
 
 - graph
@@ -358,7 +343,9 @@ This is similar to the regression only, only this time implemented with an optim
 
 [xgboost documentation](https://xgboost.readthedocs.io/en/stable/)
 
-The xgboost outperforms slightly the regression_only neural network model in the leaderboard, although it does not perform an hybrid model.
+The xgboost outperforms slightly the regression_only neural network model in the leaderboard, although it does not outperform an hybrid model.
+
+![xgboost result](doc/Training_results/xgboost_results.jpg)
 
 </details>
 
