@@ -1,8 +1,17 @@
+"""
+This file contains the model definitions for the different Neural Network models used in the project
+"""
+
 import torch
 import torch.nn as nn
 
 
 class SimpleNN(nn.Module):
+    """
+    Simple Neural Network with hidden layers
+    This is a regression model with one output: ddG
+    """
+
     def __init__(self, num_features: int, config: dict):
         fc_layer_size = config.get("fc_layer_size", 64)
         hidden_layers = config.get("hidden_layers", 5)
@@ -52,6 +61,11 @@ class SimpleNN(nn.Module):
 
 
 class ThermoNet2(nn.Module):
+    """
+    CNN model based on ThermoNet (https://github.com/gersteinlab/ThermoNet/blob/master)
+    The idea here is that we use a voxel representation of the protein and use a CNN to extract features from it
+    """
+
     def __init__(self, config):
         super().__init__()
 

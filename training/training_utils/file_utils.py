@@ -5,7 +5,7 @@ import os
 from datetime import datetime
 
 
-def open_json(filename):
+def open_json(filename: str):
     """
     open a .json file from the file path (filename)
     """
@@ -17,7 +17,7 @@ def open_json(filename):
         return {}
 
 
-def write_json(filename, json_file):
+def write_json(filename: str, json_file: dict):
     """
     write a json_file to the file path (filename)
     """

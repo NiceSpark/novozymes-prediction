@@ -1,4 +1,9 @@
 #! /usr/bin/python3
+
+"""
+Python script for training a hybrid neural network or xgboost model
+"""
+
 import argparse
 
 from training_utils.file_utils import open_json
