@@ -1,3 +1,5 @@
+# Novozymes enzymes stability predictions
+
 <!-- vscode-markdown-toc -->
 
 - 1. [Code Structure](#CodeStructure)
@@ -20,7 +22,7 @@
 	numbering=true
 	autoSave=true
 	/vscode-markdown-toc-config -->
-<!-- /vscode-markdown-toc --># Novozymes enzymes stability predictions
+<!-- /vscode-markdown-toc -->
 
 [Kaggle competition overview page](https://www.kaggle.com/competitions/novozymes-enzyme-stability-prediction/overview)
 
@@ -385,7 +387,7 @@ The xgboost outperforms slightly the regression_only neural network model in the
 ---
 
 <details>
-<summary>Other</summary>
+<summary>8. Other</summary>
 
 ## 8. <a name='Other'></a>Other
 
