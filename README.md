@@ -1,8 +1,28 @@
-# Novozymes enzymes stability predictions
+<!-- vscode-markdown-toc -->
+
+- 1. [Code Structure](#CodeStructure)
+- 2. [Protein mutation stability](#Proteinmutationstability)
+- 3. [Data](#Data)
+- 4. [Features](#Features)
+- 5. [First results](#Firstresults)
+  - 5.1. [Simple Neural Network](#SimpleNeuralNetwork)
+    - 5.1.1. [Parameters importance](#Parametersimportance)
+    - 5.1.2. [Learning curve](#Learningcurve)
+    - 5.1.3. [Hyper parameters tuning](#Hyperparameterstuning)
+- 6. [XGBoost](#XGBoost)
+- 7. [Resources:](#Resources:)
+- 8. [Dependencies](#Dependencies)
+- 9. [Virtual environment](#Virtualenvironment)
+
+<!-- vscode-markdown-toc-config
+	numbering=true
+	autoSave=true
+	/vscode-markdown-toc-config -->
+<!-- /vscode-markdown-toc --># Novozymes enzymes stability predictions
 
 [Kaggle competition overview page](https://www.kaggle.com/competitions/novozymes-enzyme-stability-prediction/overview)
 
-## Code Structure
+## 1. <a name='CodeStructure'></a>Code Structure
 
 - The project is constituted for the most part in jupyter notebooks and python script aimed at creating a global dataset which merges multiple source of experimental data for both ddG and dTm values, all linked to protein mutations.
 - Therefore at the root of the project there are 6 jupyter notebooks aimed at using the experimental results that can be found online and are locally stored in data/ (see [data sources.csv](data/sources.csv)).
@@ -26,7 +46,7 @@
 <details>
 <summary>Protein mutation stability</summary>
 
-# Protein mutation stability
+## 2. <a name='Proteinmutationstability'></a>Protein mutation stability
 
 Novozyme (company behind competition): produce enzymes for industry
 
@@ -57,7 +77,7 @@ Example: I changed the amino acid on position 14 from Glycine to Alanine, is the
 <details>
 <summary>Data</summary>
 
-# Data
+## 3. <a name='Data'></a>Data
 
 There a some data available that link protein mutation with a measure of stability change (ΔΔG, ΔTm). I got ~10k distinct measure, from which ~7k got at least ΔΔG, and ~3k have only ΔTm.
 
@@ -76,7 +96,7 @@ There a some data available that link protein mutation with a measure of stabili
 <details>
 <summary>Features</summary>
 
-# Features
+## 4. <a name='Features'></a>Features
 
 In order to merge all different dataset I got:
 
@@ -213,9 +233,9 @@ And then I computed a bunch of features based on the sequence and the 3D structu
 <details>
 <summary>First results</summary>
 
-# First results
+## 5. <a name='Firstresults'></a>First results
 
-## Simple Neural Network
+### 5.1. <a name='SimpleNeuralNetwork'></a>Simple Neural Network
 
 We take some (not all) features, we put them in a NN and see what happens.
 
@@ -241,7 +261,7 @@ Results:
 
 ⇒ normalize before mse
 
-### Parameters importance
+#### 5.1.1. <a name='Parametersimportance'></a>Parameters importance
 
 ![SimpleNN_feature_importance_histogram.png](doc/readme_images/SimpleNN_feature_importance_histogram.png)
 
@@ -259,16 +279,14 @@ Results:
 
 ⇒ There seem to have a bunch of unused features, even though I know some of them can be relevant
 
-### Learning curve
+#### 5.1.2. <a name='Learningcurve'></a>Learning curve
 
 ![learning_curve.jpg](doc/readme_images/learning_curve.jpg)
 
-### Hyper parameters tuning
+#### 5.1.3. <a name='Hyperparameterstuning'></a>Hyper parameters tuning
 
 I tried different neural network structure, and then ended up doing some sweep.
 The graph show that is mostly random, at first I thought this was due to the fact that the ksplit was giving very different result, but after fixing it I still end up with what looks mostly random.
-
-### fixed ksplit
 
 - graph
   ![fixedKsplit_graph.png](doc/readme_images/fixedKsplit_graph.png)
@@ -283,7 +301,7 @@ The graph show that is mostly random, at first I thought this was due to the fac
 - loss(epochs)
   ![fixedKsplit_loss.png](doc/readme_images/fixedKsplit_loss.png)
 
-## </details>
+ </details>
 
 ---
 
@@ -346,6 +364,9 @@ We attained better result than with cnn only or regression only (the code allow 
 
 <details>
 <summary>XGBoost</summary>
+
+## 6. <a name='XGBoost'></a>XGBoost
+
 In the same way that we can switch between CNN_only, regression_only or hybrid for the model type, we can also choose "xgboost"
 This is similar to the regression only, only this time implemented with an optimized distributed gradient boosting model instead of a neural network.
 
@@ -370,15 +391,15 @@ The xgboost outperforms slightly the regression_only neural network model in the
 
 ---
 
-## Resources:
+## 7. <a name='Resources:'></a>Resources:
 
 See the Notion export in resources/ for more infos
 
 Some additionnal prediction of protein folding were done using [alphafold notebook](https://colab.research.google.com/github/deepmind/alphafold/blob/main/notebooks/AlphaFold.ipynb#scrollTo=woIxeCPygt7K)
 
-## Dependencies
+## 8. <a name='Dependencies'></a>Dependencies
 
-Some features are computed using msms, see [this link for download](https://ccsb.scripps.edu/msms/downloads/), as well as [mgltools from the same authors](https://ccsb.scripps.edu/mgltools/downloads/)
+Some features are computed using msms, see [this link for download](https://ccsb.scripps.edu/msms/downloads/), as well as [mgltools from the same authors](https://ccsb.scripps.edu/mgltools/downloads/). See [ssbio on how to install msms](https://ssbio.readthedocs.io/en/latest/instructions/msms.html)
 
 Some features are computed using DeMaSK, see their [README](https://github.com/Singh-Lab/DeMaSk)
 DeMaSK itself is dependent on [Blastp](https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/) and [UniRef90 in fasta format](https://www.uniprot.org/help/downloads)
@@ -386,11 +407,12 @@ DeMaSK itself is dependent on [Blastp](https://ftp.ncbi.nlm.nih.gov/blast/execut
 Some features are computed using [DSSP](https://swift.cmbi.umcn.nl/gv/dssp/) which stands for Define Secondary Structure of Proteins, it is the standard method for assigning secondary structure to the amino acids of a protein, given the atomic-resolution coordinates of the protein. See the [ssbio wiki](https://ssbio.readthedocs.io/en/latest/instructions/dssp.html) as well.
 https://biopython.org/docs/1.76/api/Bio.PDB.DSSP.html
 
-Relative SASA is computed using [FreeSASA](https://freesasa.github.io/) and [ssbio wiki page about freesasa](https://ssbio.readthedocs.io/en/latest/instructions/freesasa.html).
+Voxel representations of relaxed 3D structure are computed using [acellera htmd](https://software.acellera.com/htmd/installation.html#installing-htmd), in a conda environment.
 
-Residue Depth is computed using [MSMS](https://ccsb.scripps.edu/msms/) see [ssbio on how to install msms](https://ssbio.readthedocs.io/en/latest/instructions/msms.html)
+cuML is used for PCA, see the [git repo](https://github.com/rapidsai/cuml)
 
-## Virtual environment
+## 9. <a name='Virtualenvironment'></a>Virtual environment
 
 This project use pipenv to handle the dependencies, although in some devices (notably GCP compute engine) the installation of pytorch was done directly.
 [See pipenv documentation](https://pipenv.pypa.io/en/latest/)
+See the dependencies sections for more infos on package outside the pipenv.
