@@ -1,4 +1,9 @@
 #! /usr/bin/python3
+
+"""
+Python script for hyperparameter optimization using optuna
+"""
+
 import argparse
 import optuna
 from optuna.integration.wandb import WeightsAndBiasesCallback

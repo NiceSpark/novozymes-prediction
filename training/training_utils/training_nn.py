@@ -1,3 +1,8 @@
+"""
+This file contains the training loop for the neural network
+It is used by the training script and notebook
+"""
+
 import copy
 import torch.nn as nn
 import torch
@@ -6,7 +11,6 @@ import tqdm
 import gc
 import wandb
 from torch.optim import AdamW
-from sklearn.metrics import mean_squared_error
 from torch.utils.data import DataLoader
 from pickle import dump
 from .models import HybridNN
@@ -15,9 +19,10 @@ from .model_utils import *
 
 def train_model(model: nn.Module, config: dict,
                 optimizer, scheduler, loss_function,
-                trainloader, device, dataset_train,
-                X_test_voxel, X_test_features,
-                y_test_ddG, y_test_dTm):
+                trainloader: DataLoader, device: torch.device,
+                dataset_train: Hybrid_Dataset,
+                X_test_voxel: torch.Tensor, X_test_features: torch.Tensor,
+                y_test_ddG: torch.Tensor, y_test_dTm: torch.Tensor):
     """
     train the model
     we update some stastistic data over each epoch
@@ -119,7 +124,10 @@ def train_model(model: nn.Module, config: dict,
     return best_model, results
 
 
-def build_optimizer(model, config):
+def build_optimizer(model: nn.Module, config: dict):
+    """
+    Build optimizer according to config specifications
+    """
     if config["optimizer"] == "sgd":
         optimizer = torch.optim.SGD(model.parameters(),
                                     lr=config["learning_rate"], momentum=0.9)
@@ -145,6 +153,9 @@ def build_optimizer(model, config):
 
 
 def build_scheduler(optimizer, config):
+    """
+    build scheduler according to config specifications
+    """
     scheduler = torch.optim.lr_scheduler.MultiStepLR(
         optimizer,
         milestones=config.get("scheduler_milestones", [20, 30, 40]),
@@ -153,18 +164,29 @@ def build_scheduler(optimizer, config):
     return scheduler
 
 
-def k_fold_training_nn(df, config, features, features_infos,
-                    device, wandb_active=False, wandb_config={}, keep_models=False):
+def k_fold_training_nn(df: pd.DataFrame, config: dict,
+                       features: list, features_infos: dict,
+                       device, wandb_active=False, wandb_config={}, keep_models=False):
+    """
+    loop over kfold training and testing
+    we save models in tmp/ if keep_models is True
+    we save log results to wandb if wandb_active is True
+    """
+    # we initialize the list of results
     training_results = []
 
     if wandb_active:
+        # initialize wandb
         wandb.init(config=wandb_config)
         # update config based on wandb.config
         config.update(wandb.config)
 
+    # set the correct torch type (double or float)
     used_torch_type = torch.double if config["use_double"] else torch.float
 
+    # main loop over kfold
     for k in tqdm.tqdm(range(config["kfold"])):
+        # we split the data into train and test
         train = list(range(config["kfold"]))
         test = [train.pop(k)]
         df_train = df[df["kfold"].isin(train)]
@@ -206,14 +228,13 @@ def k_fold_training_nn(df, config, features, features_infos,
         # Evaluate this model:
         model.eval()
         with torch.set_grad_enabled(False):
-            # print(f"MSE obtained for k-fold {k}: {mse}")
-            results = results_by_epochs
-            results.update({
+            results_by_epochs.update({
                 "time": t1
             })
-            training_results.append(results)
+            training_results.append(results_by_epochs)
 
         if keep_models:
+            # save model and scalers to tmp/
             torch.save(model, f"tmp/model_{k}.pth")
             dump(dataset_train.X_scaler, open(f"tmp/X_scaler_{k}.pkl", "wb"))
             dump(dataset_train.ddG_scaler, open(
@@ -223,7 +244,7 @@ def k_fold_training_nn(df, config, features, features_infos,
             dump(dataset_train.pca_direct, open(
                 f"tmp/pca_direct_{k}.pkl", "wb"))
 
-        # end of process for k, freeing memory
+        # end of process for k kfold, freeing memory
         del model
         del df_train, df_test
         del dataset_train, trainloader
@@ -231,8 +252,9 @@ def k_fold_training_nn(df, config, features, features_infos,
         gc.collect()
         torch.cuda.empty_cache()
 
-    # Process is complete.
+    # Process is complete
     if wandb_active:
+        # we log the results to wandb, we average over the kfold
         num_epochs = config["num_epochs"]
         avg_test_mse_over_time = np.mean(
             np.array([r["test_mse_over_time"] for r in training_results]), axis=0)
@@ -241,6 +263,8 @@ def k_fold_training_nn(df, config, features, features_infos,
         avg_loss_over_time = np.mean(
             np.array([r["loss_over_time"] for r in training_results]), axis=0)
 
+        # we want to see the evolutions through each epochs,
+        # it's easier this way than to put wandb in train_model directly
         for epoch in range(num_epochs):
             wandb.log({
                 "test_mse": avg_test_mse_over_time[epoch],
@@ -248,7 +272,7 @@ def k_fold_training_nn(df, config, features, features_infos,
                 "loss": avg_loss_over_time[epoch],
             })
 
-    if wandb_active:
+        # we finish wandb logging
         wandb.finish()
 
     return training_results

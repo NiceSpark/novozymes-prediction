@@ -1,3 +1,8 @@
+"""
+This file contains the various util functions to load and split the dataset in kfolds 
+for both training and evaluation purposes.
+"""
+
 import random
 import torch
 import os
@@ -10,6 +15,147 @@ from torch.utils.data import Dataset
 from cuml import PCA
 
 from .file_utils import open_json
+
+
+def compute_feature_list(config: dict, features_dict: dict):
+    """
+    compute feature list
+    as well as the reverse_coef, direct_features and indirect_features
+    Those are used to make the distinction between direct and indirect mutations
+    see Hybrid_Dataset for more details on reverse_mutation
+    """
+    features_config = config["features_config"]
+    reverse_coef = []
+    direct_features = []
+    indirect_features = []
+
+    features = []
+    index = 0
+
+    for key, features_sublist in features_dict.items():
+        if features_config[key].get("use"):
+            for feature in features_sublist:
+                category = features_config[key].get("category")
+                if category == "global":
+                    reverse_coef.append(1)
+                    direct_features.append(index)
+                    indirect_features.append(index)
+                elif category == "direct":
+                    reverse_coef.append(1)
+                    direct_features.append(index)
+                elif category == "indirect":
+                    reverse_coef.append(1)
+                    indirect_features.append(index)
+                if category == "delta":
+                    reverse_coef.append(-1)
+                    direct_features.append(index)
+                    indirect_features.append(index)
+                features.append(feature)
+                index += 1
+
+    if config["ddG_as_input"]:
+        features.append("ddG")
+        reverse_coef.append(1)
+        direct_features.append(index)
+        indirect_features.append(index)
+        index += 1
+    if config["dTm_as_input"]:
+        features.append("dTm")
+        reverse_coef.append(1)
+        direct_features.append(index)
+        indirect_features.append(index)
+        index += 1
+
+    features_infos = {
+        "reverse_coef": reverse_coef,
+        "direct_features": direct_features,
+        "indirect_features": indirect_features,
+    }
+
+    return features, features_infos
+
+
+def split_dataset(df: pd.DataFrame, config):
+    """
+    adds the kfold group to each row, 
+    based on the fixed_ksplit from the config if ksplit_path is valid
+    or without a group ksplit otherwise
+    """
+    if os.path.exists(config["ksplit_path"]):
+        fixed_ksplit = open_json(config["ksplit_path"])
+        df["kfold"] = df["alphafold_path"].apply(
+            lambda x: fixed_ksplit[x])
+    else:
+        print("doing ksplit without groups")
+        df.reset_index(drop=True, inplace=True)
+        k = config["kfold"]
+        kfold = KFold(k, shuffle=True)
+        split = list(kfold.split(range(len(df))))
+
+        def get_fold_id(i, split):
+            for k in range(len(split)):
+                if i in split[k][1]:
+                    return k
+            return np.nan
+
+        df["kfold"] = df.apply(
+            lambda row: get_fold_id(row.name, split), axis=1)
+
+    return df
+
+
+def load_dataset(config: dict, features: list, rm_nan=False):
+    df = pd.read_csv(f"{config['dataset_dir']}/{config['dataset_name']}.csv")
+
+    # remove bad uniprot
+    df = df[~(df["uniprot"].isin(config["bad_uniprot"]))]
+
+    if rm_nan:
+        for feature in features:
+            df = df[~(df[feature].isna())]
+
+    # keep only mutations with adequate ddG value
+    # usually mutations are destabilizing, so we guess in the submission dataset they are
+    df = df[((df.ddG <= config.get("max_ddG_value", 0)) |
+            (df.dTm <= config.get("max_dTm_value", 0)))]
+
+    # keep only mutations with adequate targets
+    if config["ddG_as_input"] or config["dTm_as_input"]:
+        df = df[~(df.ddG.isna()) & ~(df.dTm.isna())]
+    elif "ddG" not in config["targets"]:
+        # if ddG not in targets we keep only mutations with dTm values
+        df = df[~(df.dTm.isna())]
+    elif "dTm" not in config["targets"]:
+        # if dTm not in targets we keep only mutations with ddG values
+        df = df[~(df.ddG.isna())]
+
+    # apply max protein length
+    df = df[df.length.le(config["max_protein_length"])]
+
+    if config["model_type"] in ["hybrid", "cnn_only"]:
+        # load voxel features
+        if config["use_pdb_chain_voxel"]:
+            print("using pdb_chain_voxel")
+            df = df[~(df["pdb_chain_voxel_path"].isna())]
+            df["direct_voxel_features"] = df["pdb_chain_voxel_path"].apply(
+                np.load)
+        else:
+            df["direct_voxel_features"] = df["direct_voxel_path"].apply(
+                np.load)
+    else:
+        df["direct_voxel_features"] = 0.0
+
+    print(f"loaded {len(df)} data")
+    return df
+
+
+def get_device(config: dict):
+    if torch.cuda.is_available() and config["use_cuda"]:
+        device = torch.device("cuda")
+    else:
+        device = torch.device("cpu")
+    print(device)
+    return device
 
 
 class Hybrid_Dataset(Dataset):
@@ -86,84 +232,6 @@ class Hybrid_Dataset(Dataset):
             y_dTm = torch.as_tensor(y_dTm, dtype=self.used_torch_type)
 
         return x_voxel_features, x_features, y_ddG, y_dTm
-
-
-def compute_feature_list(config: dict, features_dict: dict):
-    # compute feature list
-    features_config = config["features_config"]
-    reverse_coef = []
-    direct_features = []
-    indirect_features = []
-
-    features = []
-    index = 0
-
-    for key, features_sublist in features_dict.items():
-        if features_config[key].get("use"):
-            for feature in features_sublist:
-                category = features_config[key].get("category")
-                if category == "global":
-                    reverse_coef.append(1)
-                    direct_features.append(index)
-                    indirect_features.append(index)
-                elif category == "direct":
-                    reverse_coef.append(1)
-                    direct_features.append(index)
-                elif category == "indirect":
-                    reverse_coef.append(1)
-                    indirect_features.append(index)
-                if category == "delta":
-                    reverse_coef.append(-1)
-                    direct_features.append(index)
-                    indirect_features.append(index)
-                features.append(feature)
-                index += 1
-
-    if config["ddG_as_input"]:
-        features.append("ddG")
-        reverse_coef.append(1)
-        direct_features.append(index)
-        indirect_features.append(index)
-        index += 1
-    if config["dTm_as_input"]:
-        features.append("dTm")
-        reverse_coef.append(1)
-        direct_features.append(index)
-        indirect_features.append(index)
-        index += 1
-
-    features_infos = {
-        "reverse_coef": reverse_coef,
-        "direct_features": direct_features,
-        "indirect_features": indirect_features,
-    }
-
-    return features, features_infos
-
-
-def split_dataset(df: pd.DataFrame, config):
-    """adds the kfold group to each row, based on the fixed_ksplit from the config"""
-    if os.path.exists(config["ksplit_path"]):
-        fixed_ksplit = open_json(config["ksplit_path"])
-        df["kfold"] = df["alphafold_path"].apply(
-            lambda x: fixed_ksplit[x])
-    else:
-        print("no valid ksplit path given, doing ksplit without groups")
-        df.reset_index(drop=True, inplace=True)
-        k = config["kfold"]
-        kfold = KFold(k, shuffle=True)
-        split = list(kfold.split(range(len(df))))
-
-        def get_fold_id(i, split):
-            for k in range(len(split)):
-                if i in split[k][1]:
-                    return k
-            return np.nan
-
-        df["kfold"] = df.apply(
-            lambda row: get_fold_id(row.name, split), axis=1)
-
-    return df
 
 
 def prepare_train_dataset(df: pd.DataFrame, config: dict,
@@ -316,64 +384,13 @@ def evaluate_model(X_voxel_features: torch.Tensor, X_features: torch.Tensor,
     return scaled_mse, mse_ddG, mse_dTm
 
 
-def get_worst_samples(df_test, test_diff, config):
+def get_worst_samples(df_test: pd.DataFrame, test_diff: np.ndarray, config: dict):
+    """
+    this function is used in order to remove worst samples from the training dataset
+    """
     uniprot_df_test = df_test[["uniprot", "wild_aa",
                               "mutation_position", "mutated_aa"]].copy()
     uniprot_df_test["diff"] = test_diff
     worst_samples = uniprot_df_test.nlargest(
         config["num_worst_samples"], ["diff"]).to_dict("records")
     return worst_samples
-
-
-def load_dataset(config, features, rm_nan=False):
-    df = pd.read_csv(f"{config['dataset_dir']}/{config['dataset_name']}.csv")
-
-    # remove bad uniprot
-    df = df[~(df["uniprot"].isin(config["bad_uniprot"]))]
-
-    if rm_nan:
-        for feature in features:
-            df = df[~(df[feature].isna())]
-
-    # keep only mutations with adequate ddG value
-    # usually mutations are destabilizing, so we guess in the submission dataset they are
-    df = df[((df.ddG <= config.get("max_ddG_value", 0)) |
-            (df.dTm <= config.get("max_dTm_value", 0)))]
-
-    # keep only mutations with adequate targets
-    if config["ddG_as_input"] or config["dTm_as_input"]:
-        df = df[~(df.ddG.isna()) & ~(df.dTm.isna())]
-    elif "ddG" not in config["targets"]:
-        # if ddG not in targets we keep only mutations with dTm values
-        df = df[~(df.dTm.isna())]
-    elif "dTm" not in config["targets"]:
-        # if dTm not in targets we keep only mutations with ddG values
-        df = df[~(df.ddG.isna())]
-
-    # apply max protein length
-    df = df[df.length.le(config["max_protein_length"])]
-
-    if config["model_type"] in ["hybrid", "cnn_only"]:
-        # load voxel features
-        if config["use_pdb_chain_voxel"]:
-            print("using pdb_chain_voxel")
-            df = df[~(df["pdb_chain_voxel_path"].isna())]
-            df["direct_voxel_features"] = df["pdb_chain_voxel_path"].apply(
-                np.load)
-        else:
-            df["direct_voxel_features"] = df["direct_voxel_path"].apply(
-                np.load)
-    else:
-        df["direct_voxel_features"] = 0.0
-
-    print(f"loaded {len(df)} data")
-    return df
-
-
-def get_device(config):
-    if torch.cuda.is_available() and config["use_cuda"]:
-        device = torch.device("cuda")
-    else:
-        device = torch.device("cpu")
-    print(device)
-    return device

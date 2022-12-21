@@ -1,4 +1,7 @@
-"""This module contains functions to save results and models."""
+"""
+This module contains functions to save results
+but also models and scalers in order to predict on submission dataset at a latter time.
+"""
 
 import os
 import shutil
@@ -14,8 +17,10 @@ from .file_utils import open_json, write_json
 
 
 def move_models_and_scalers(dir_path: str):
-    # we save models and scalers during training in tmp/,
-    # we now need to move them to the appropriated folder
+    """
+    we save models and scalers during training in tmp/,
+    we now need to move them to the appropriated folder
+    """
     for model_tmp_path in glob("tmp/model*"):
         shutil.move(model_tmp_path, f"{dir_path}/")
     for scaler_tmp_path in glob("tmp/X_scaler*.pkl"):
@@ -29,6 +34,9 @@ def move_models_and_scalers(dir_path: str):
 
 
 def load_models_and_scalers(dir_path: str):
+    """
+    load models and scalers from dir_path, in order to predict on submission dataset
+    """
     model_list, X_scaler_list = [], []
     ddG_scaler_list, dTm_scaler_list = [], []
     all_pca_directs = []
@@ -68,7 +76,11 @@ def load_models_and_scalers(dir_path: str):
     return model_list, all_scalers, all_pca_directs
 
 
-def save_submission(df, training_dir):
+def save_submission(df, training_dir: str):
+    """
+    save submission csv file in submissions/ folder
+    also include in the folder the config and result json as well as the training plot
+    """
     date_time = datetime.now()
     timestamp = date_time.strftime("%Y-%m-%d_%H-%M-%S")
     training_config = open_json(training_dir+"/config.json")
@@ -88,6 +100,9 @@ def save_submission(df, training_dir):
 
 
 def compute_feature_weight(model):
+    """
+    compute feature weight for each model
+    """
     weights = []
     for name, params in model.named_parameters():
         if "regression_model" in name and "weight" in name:
@@ -102,7 +117,12 @@ def compute_feature_weight(model):
     return summed_weights
 
 
-def plot_feature_weight(config, models, output_path, regression_only=False):
+def plot_feature_weight(config: dict, models: list,
+                        output_path: str, regression_only=False):
+    """
+    plot feature weight for each model and save it to the output_path
+    """
+
     _ = plt.figure(figsize=(15, 5))
     all_summed_weights = []
     for model in models:
@@ -120,7 +140,97 @@ def plot_feature_weight(config, models, output_path, regression_only=False):
     plt.savefig(output_path)
 
 
-def log_kfold_training(name, results, config, features, model_structure):
+def plot_xgboost_training(results: dict, config: dict,
+                          name: str, dir_path: str, dir_num: int,
+                          colors: list):
+    """
+    plot training results for xgboost
+    """
+    # get data
+    avg_train_mse = sum(x.get("train_mse", 0)
+                        for x in results)/int(config["kfold"])
+    avg_test_mse = sum(x.get("test_mse", 0)
+                       for x in results)/int(config["kfold"])
+
+    # plot results for xgboost
+    plt.figure(figsize=(10, 4))
+    plt.title(
+        f"Training Results on {config['dataset_name']} for {name}_{dir_num}")
+    plt.suptitle(
+        f"{avg_train_mse= :.2f}, {avg_test_mse= :.2f}")
+    plt.subplot(1, 2, 1)
+    plt.title("train mse")
+    for i, train_mse in enumerate([x.get("train_mse") for x in results]):
+        plt.plot(train_mse, colors[i %
+                                   len(colors)]+'o', label=f"train_mse_{i}")
+    plt.subplot(1, 2, 2)
+    plt.title("test mse")
+    for i, test_mse in enumerate([x.get("test_mse") for x in results]):
+        plt.plot(test_mse, colors[i %
+                                  len(colors)]+'o', label=f"test_mse_{i}")
+    # save figure to dir_path
+    plt.savefig(f"{dir_path}/results.jpg")
+
+
+def plot_nn_training(results: dict, config: dict,
+                     name: str, dir_path: str, dir_num: int,
+                     colors: list):
+    """
+    plot training results for neural network
+    """
+    # get data
+    best_epoch_avg = sum(x.get("best_epoch", 0)
+                         for x in results)/int(config["kfold"])
+    best_test_mse_avg = sum(x.get("best_test_mse", 0)
+                            for x in results)/int(config["kfold"])
+    training_time = sum(x.get('time', 0) for x in results)
+    loss_list = [x.get("loss_over_time", 0) for x in results]
+    test_mse_list = [x.get("test_mse_over_time", 0) for x in results]
+    test_mse_ddG_list = [x.get("test_mse_ddG_over_time", 0)
+                         for x in results]
+    test_mse_dTm_list = [x.get("test_mse_dTm_over_time", 0)
+                         for x in results]
+    # plot the loss, mse, mse_ddG, mse_dTm over time
+    plt.figure(figsize=(20, 8))
+    plt.title(
+        f"Training Results on {config['dataset_name']} for {name}_{dir_num}")
+    plt.suptitle(
+        f"{best_test_mse_avg= :.2f}, {best_epoch_avg= :.2f}, {training_time= :.2f}")
+    plt.subplot(1, 4, 1)
+    plt.title("loss over time")
+    for i, loss in enumerate(loss_list):
+        plt.plot(loss, colors[i % len(colors)], label=f"loss_{i}")
+    plt.subplot(1, 4, 2)
+    plt.title("test_mse_ddG_over_time")
+    for i, test_mse_ddG in enumerate(test_mse_ddG_list):
+        plt.plot(test_mse_ddG, colors[i % len(
+            colors)], label=f"test_mse_ddG_{i}")
+    plt.subplot(1, 4, 3)
+    plt.title("test_mse_dTm_over_time")
+    for i, test_mse_dTm in enumerate(test_mse_dTm_list):
+        plt.plot(test_mse_dTm, colors[i % len(
+            colors)], label=f"test_mse_dTm_{i}")
+    plt.subplot(1, 4, 4)
+    plt.title("test mse over time")
+    for i, test_mse in enumerate(test_mse_list):
+        plt.plot(test_mse, colors[i % len(colors)], label=f"test_mse_{i}")
+
+    # save figure to dir_path
+    plt.savefig(f"{dir_path}/results.jpg")
+
+    # plot feature importance
+    models, _, _ = load_models_and_scalers("tmp")
+    plot_feature_weight(config, models, f"{dir_path}/features_importance.png", regression_only=(
+        "regression_only" in config["model_type"]))
+
+
+def log_kfold_training(name: str, results: dict, config: dict,
+                       features: list, model_structure: str):
+    """
+    log training results for kfold training
+    works for both nn and xgboost
+    """
+
     date_time = datetime.now()
     timestamp = date_time.strftime("%Y-%m-%d_%H-%M-%S")
     dir_num = len(glob(f"./outputs/{name}_*/"))
@@ -140,80 +250,20 @@ def log_kfold_training(name, results, config, features, model_structure):
 
     # plot loss/mse over time for training on whole dataset
     if config["model_type"] != "xgboost":
-        # get data
-        best_epoch_avg = sum(x.get("best_epoch", 0)
-                             for x in results)/int(config["kfold"])
-        best_test_mse_avg = sum(x.get("best_test_mse", 0)
-                                for x in results)/int(config["kfold"])
-        training_time = sum(x.get('time', 0) for x in results)
-        loss_list = [x.get("loss_over_time", 0) for x in results]
-        test_mse_list = [x.get("test_mse_over_time", 0) for x in results]
-        test_mse_ddG_list = [x.get("test_mse_ddG_over_time", 0)
-                             for x in results]
-        test_mse_dTm_list = [x.get("test_mse_dTm_over_time", 0)
-                             for x in results]
-        # plot the loss, mse, mse_ddG, mse_dTm over time
-        plt.figure(figsize=(20, 8))
-        plt.title(
-            f"Training Results on {config['dataset_name']} for {name}_{dir_num}")
-        plt.suptitle(
-            f"{best_test_mse_avg= :.2f}, {best_epoch_avg= :.2f}, {training_time= :.2f}")
-        plt.subplot(1, 4, 1)
-        plt.title("loss over time")
-        for i, loss in enumerate(loss_list):
-            plt.plot(loss, colors[i % len(colors)], label=f"loss_{i}")
-        plt.subplot(1, 4, 2)
-        plt.title("test_mse_ddG_over_time")
-        for i, test_mse_ddG in enumerate(test_mse_ddG_list):
-            plt.plot(test_mse_ddG, colors[i % len(
-                colors)], label=f"test_mse_ddG_{i}")
-        plt.subplot(1, 4, 3)
-        plt.title("test_mse_dTm_over_time")
-        for i, test_mse_dTm in enumerate(test_mse_dTm_list):
-            plt.plot(test_mse_dTm, colors[i % len(
-                colors)], label=f"test_mse_dTm_{i}")
-        plt.subplot(1, 4, 4)
-        plt.title("test mse over time")
-        for i, test_mse in enumerate(test_mse_list):
-            plt.plot(test_mse, colors[i % len(colors)], label=f"test_mse_{i}")
-
-        # save figure to dir_path
-        plt.savefig(f"{dir_path}/results.jpg")
-
-        # plot feature importance
-        models, _, _ = load_models_and_scalers("tmp")
-        plot_feature_weight(config, models, f"{dir_path}/features_importance.png", regression_only=(
-            "regression_only" in config["model_type"]))
+        plot_nn_training(results, config, name, dir_path, dir_num, colors)
     else:
-        # get data
-        avg_train_mse = sum(x.get("train_mse", 0)
-                            for x in results)/int(config["kfold"])
-        avg_test_mse = sum(x.get("test_mse", 0)
-                           for x in results)/int(config["kfold"])
-
-        # plot results for xgboost
-        plt.figure(figsize=(10, 4))
-        plt.title(
-            f"Training Results on {config['dataset_name']} for {name}_{dir_num}")
-        plt.suptitle(
-            f"{avg_train_mse= :.2f}, {avg_test_mse= :.2f}")
-        plt.subplot(1, 2, 1)
-        plt.title("train mse")
-        for i, train_mse in enumerate([x.get("train_mse") for x in results]):
-            plt.plot(train_mse, colors[i %
-                     len(colors)]+'o', label=f"train_mse_{i}")
-        plt.subplot(1, 2, 2)
-        plt.title("test mse")
-        for i, test_mse in enumerate([x.get("test_mse") for x in results]):
-            plt.plot(test_mse, colors[i %
-                     len(colors)]+'o', label=f"test_mse_{i}")
-        # save figure to dir_path
-        plt.savefig(f"{dir_path}/results.jpg")
+        plot_xgboost_training(results, config, name, dir_path, dir_num, colors)
 
     return dir_path
 
 
-def log_learning_curve(name, all_training_results, config, features):
+def log_learning_curve(name: str, all_training_results: dict,
+                       config: dict, features: list):
+    """
+    log training results for learning curve computation
+    works for both nn and xgboost
+    """
+
     date_time = datetime.now()
     timestamp = date_time.strftime("%Y-%m-%d_%H-%M-%S")
     dir_num = len(glob(f"./outputs/{name}_*"))
