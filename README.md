@@ -10,6 +10,14 @@
 - In order to compute the different features used we need to have the 3D structure (we use alphafold2 predicted structures), but also the relaxed structure computed with the rosetta software (The purpose of Rosetta's relax mode is to lower the energy of a structure by making small adjustements to the backbone and sidechain torsion angles) for both wild and mutated protein sequences. The code to do this is in [compute_mutated_structures](compute_mutated_structures/)
   => This computation of the mutated structure is quite heavy, I ended up using free Google Cloud Platform credits to do it on a 32 vCPUs machine.
 - Finally the code in the [training folder](training/) notably [the train notebook](training/train.ipynb) use the dataset with features from data/main_dataset_creation and the computed 3D structures in compute_mutated_structures (in the case of a cnn_only or hybrid model) to both train a model, compute the learning curve and compute the submission results.
+- In order to configurate the training 2 distinct config files exist in training/:
+  - [config_xgboost.json](training/config_xgboost.json)
+  - [config_hybrid_nn.json](training/config_hybrid_nn.json)
+    Those config files allow the user to specify all important aspect relative to the model training, such as:
+    - the model type: xgboost or one of [hybrid, cnn_only, regression_only]
+    - various model specifications (fully connected layer size etc.)
+    - the dataset version & the features to use
+    - the number of kfold, the use of a cuda device or not etc.
 - Each training is logged (with results, graphs and models+scaler if specified) in training/outputs
 - In order to do hyperparameter tuning we used wandb for visualization and optuna (or wandb sweep) for finding optimums.
 
@@ -346,6 +354,17 @@ This is similar to the regression only, only this time implemented with an optim
 The xgboost outperforms slightly the regression_only neural network model in the leaderboard, although it does not outperform an hybrid model.
 
 ![xgboost result](doc/Training_results/xgboost_results.jpg)
+
+</details>
+
+---
+
+<details>
+<summary>Other</summary>
+
+- max ddG & dTm values: most mutations are destabilizing (meaning <0 ddG or dTm values) therefore in order to have the best leaderboard result we focus on those by specifying in the training config files a max value for ddG and dTm. We also select only protein with a max length of 600 (the submission protein has a length of 220 amino acids)
+- [Principal component analysis (PCA)](https://en.wikipedia.org/wiki/Principal_component_analysis) is a method implemented in this project to reduce the number of features in order to avoid overfitting to the dataset (keep in mind we only have ~400 proteins in our dataset, the new protein for submission is different from those)
+- **missing values of ddG or dTm in the dataset** and **multi ouptut models**. Because the dataset is the result of merging different experimental results together, some mutations have a ddG value, some dTm, and some both. I did try to use ddG as a feature in order to predict dTm (or vice versa) but the average error was too important in order to augment my dataset. Another thing I tried in the neural networks was too have 2 targets (ddG and dTm) and compute a loss on the available data. But the result was not better than a training on ddG or dTm only.
 
 </details>
 
