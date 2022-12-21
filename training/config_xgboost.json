@@ -3,10 +3,9 @@
     "dataset_name": "dataset_final_6_12_14_09",
     "features_name": "features",
     "model_type": "xgboost",
-    "n_estimators": 500,
-    "max_depth": 7,
-    "learning_rate": 0.1,
-    "num_workers": 12,
+    "n_estimators": 100,
+    "max_depth": null,
+    "learning_rate": null,
     "targets": [
         "ddG"
     ],
@@ -17,7 +16,7 @@
     "max_dTm_value": 1.5,
     "max_protein_length": 600,
     "reverse_probability": 0,
-    "kfold": 10,
+    "kfold": 100,
     "group_kfold": false,
     "ksplit_path": "",
     "num_worst_samples": 10,

@@ -37,7 +37,8 @@ def k_fold_training_xgboost(df, config, features, features_infos,
         model = xg.XGBRegressor(objective='reg:squarederror',
                                 n_estimators=config["n_estimators"],
                                 max_depth=config["max_depth"],
-                                learning_rate=config["learning_rate"]
+                                learning_rate=config["learning_rate"],
+                                seed=42
                                 )
         # Fitting the model
         # TODO: multi outputs model, for now we do not use dTm

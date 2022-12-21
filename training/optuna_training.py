@@ -53,11 +53,11 @@ def objective(trial):
     """
     optuna_config = global_config.copy()
     if args.xgboost:
-        optuna_config["max_depth"] = trial.suggest_int("max_depth", 5, 10)
+        optuna_config["max_depth"] = trial.suggest_int("max_depth", 5, 12)
         optuna_config["learning_rate"] = trial.suggest_float(
-            "learning_rate", 1e-2, 1, log=True)
+            "learning_rate", 1e-3, 1, log=True)
         optuna_config["n_estimators"] = trial.suggest_int(
-            "n_estimators", 10, 1000)
+            "n_estimators", 250, 1500)
         pprint({f"{k}: {optuna_config[k]}" for k in ["max_depth",
                                                      "learning_rate",
                                                      "n_estimators"]})

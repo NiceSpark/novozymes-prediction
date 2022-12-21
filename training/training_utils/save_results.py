@@ -161,19 +161,21 @@ def log_kfold_training(name, results, config, features, model_structure):
         plt.subplot(1, 4, 1)
         plt.title("loss over time")
         for i, loss in enumerate(loss_list):
-            plt.plot(loss, colors[i], label=f"loss_{i}")
+            plt.plot(loss, colors[i % len(colors)], label=f"loss_{i}")
         plt.subplot(1, 4, 2)
         plt.title("test_mse_ddG_over_time")
         for i, test_mse_ddG in enumerate(test_mse_ddG_list):
-            plt.plot(test_mse_ddG, colors[i], label=f"test_mse_ddG_{i}")
+            plt.plot(test_mse_ddG, colors[i % len(
+                colors)], label=f"test_mse_ddG_{i}")
         plt.subplot(1, 4, 3)
         plt.title("test_mse_dTm_over_time")
         for i, test_mse_dTm in enumerate(test_mse_dTm_list):
-            plt.plot(test_mse_dTm, colors[i], label=f"test_mse_dTm_{i}")
+            plt.plot(test_mse_dTm, colors[i % len(
+                colors)], label=f"test_mse_dTm_{i}")
         plt.subplot(1, 4, 4)
         plt.title("test mse over time")
         for i, test_mse in enumerate(test_mse_list):
-            plt.plot(test_mse, colors[i], label=f"test_mse_{i}")
+            plt.plot(test_mse, colors[i % len(colors)], label=f"test_mse_{i}")
 
         # save figure to dir_path
         plt.savefig(f"{dir_path}/results.jpg")
@@ -198,18 +200,20 @@ def log_kfold_training(name, results, config, features, model_structure):
         plt.subplot(1, 2, 1)
         plt.title("train mse")
         for i, train_mse in enumerate([x.get("train_mse") for x in results]):
-            plt.plot(train_mse, colors[i]+'o', label=f"train_mse_{i}")
+            plt.plot(train_mse, colors[i %
+                     len(colors)]+'o', label=f"train_mse_{i}")
         plt.subplot(1, 2, 2)
         plt.title("test mse")
         for i, test_mse in enumerate([x.get("test_mse") for x in results]):
-            plt.plot(test_mse, colors[i]+'o', label=f"test_mse_{i}")
+            plt.plot(test_mse, colors[i %
+                     len(colors)]+'o', label=f"test_mse_{i}")
         # save figure to dir_path
         plt.savefig(f"{dir_path}/results.jpg")
 
     return dir_path
 
 
-def log_learning_curve(name, all_training_results, config, features, model_structure):
+def log_learning_curve(name, all_training_results, config, features):
     date_time = datetime.now()
     timestamp = date_time.strftime("%Y-%m-%d_%H-%M-%S")
     dir_num = len(glob(f"./outputs/{name}_*"))
@@ -224,7 +228,6 @@ def log_learning_curve(name, all_training_results, config, features, model_struc
     write_json(f"{dir_path}/all_training_results.json", all_training_results)
     write_json(f"{dir_path}/config.json", config)
     write_json(f"{dir_path}/features.json", features)
-    write_json(f"{dir_path}/model_structure.json", model_structure)
 
     # create the different plots
     num_rows = all_training_results["learning_curve"]["num_rows"]
@@ -237,38 +240,6 @@ def log_learning_curve(name, all_training_results, config, features, model_struc
     plt.plot(num_rows, train_mse, "r", label="train_mse")
     plt.plot(num_rows, test_mse, "g", label="test_mse")
     plt.legend()
-    plt.savefig(f"{dir_path}/learning_curve.jpg")
-
-    # plot loss/mse over time for training on whole dataset
-    simple_train_results = all_training_results["training_by_num_rows"][-1]
-    train_avg_mse = sum(x['train_mse']
-                        for x in simple_train_results)/config["kfold"]
-    test_avg_mse = sum(x['test_mse']
-                       for x in simple_train_results)/config["kfold"]
-    training_time = sum(x.get('time', 0) for x in simple_train_results)
-    loss_list = [x.get("loss_over_time") for x in simple_train_results]
-    train_mse_list = [x.get("train_mse_over_time")
-                      for x in simple_train_results]
-    test_mse_list = [x.get("test_mse_over_time")
-                     for x in simple_train_results]
-
-    if (test_mse_list[0] is not None and loss_list[0] is not None):
-        plt.figure(figsize=(10, 5))
-        plt.title(
-            f"Training Results on {config['dataset_name']} for {name}_{dir_num}")
-        plt.suptitle(
-            f"{train_avg_mse= :.2f}, {test_avg_mse= :.2f}, {training_time= :.2f}")
-        plt.subplot(1, 2, 1)
-        plt.title("loss over time")
-        for loss in loss_list:
-            plt.plot(loss)
-
-        plt.subplot(1, 2, 2)
-        plt.title("mse over time")
-        for train_mse in train_mse_list:
-            plt.plot(train_mse, "r", label="train_mse")
-        for test_mse in test_mse_list:
-            plt.plot(test_mse, "g", label="test_mse")
-        plt.savefig(f"{dir_path}/results.jpg")
+    plt.savefig(f"{dir_path}/learning_curve.png")
 
     return dir_path
