@@ -2,7 +2,18 @@
 
 [Kaggle competition overview page](https://www.kaggle.com/competitions/novozymes-enzyme-stability-prediction/overview)
 
-# Report 26_11
+## Code Structure
+
+- The project is constituted for the most part in jupyter notebooks and python script aimed at creating a global dataset which merges multiple source of experimental data for both ddG and dTm values, all linked to protein mutations.
+- Therefore at the root of the project there are 6 jupyter notebooks aimed at using the experimental results that can be found online and are locally stored in data/ (see [data sources.csv](data/sources.csv)).
+- The output of the jupyter notebooks at the root of the project will then be stored in a folder in [data/main_dataset_creation/outputs/](data/main_dataset_creation/outputs/).
+- In order to compute the different features used we need to have the 3D structure (we use alphafold2 predicted structures), but also the relaxed structure computed with the rosetta software (The purpose of Rosetta's relax mode is to lower the energy of a structure by making small adjustements to the backbone and sidechain torsion angles) for both wild and mutated protein sequences. The code to do this is in [compute_mutated_structures](compute_mutated_structures/)
+  => This computation of the mutated structure is quite heavy, I ended up using free Google Cloud Platform credits and do it on a 32 vCPUs machine.
+- Finally the code in the [training folder](training/) notably [the train notebook](training/train.ipynb) use the dataset with features from data/main_dataset_creation and the computed 3D structures in compute_mutated_structures (in the case of a cnn_only or hybrid model) to both train a model, compute the learning curve and compute the submission results.
+- Each training is logged (with results, graphs and models+scaler if specified) in [training/outputs](training/outputs/)
+- In order to do hyperparameter tuning we used wandb for visualization and optuna (or wandb sweep) for finding optimums.
+
+---
 
 <details>
 <summary>Protein mutation stability</summary>
@@ -348,14 +359,6 @@ This is similar to the regression only, only this time implemented with an optim
 [xgboost documentation](https://xgboost.readthedocs.io/en/stable/)
 
 The xgboost outperforms slightly the regression_only neural network model in the leaderboard, although it does not perform an hybrid model.
-
-</details>
-
----
-
-<details>
-<summary>Code structure</summary>
-The project
 
 </details>
 
