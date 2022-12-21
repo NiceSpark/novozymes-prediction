@@ -9,10 +9,12 @@
     - 5.1.1. [Parameters importance](#Parametersimportance)
     - 5.1.2. [Learning curve](#Learningcurve)
     - 5.1.3. [Hyper parameters tuning](#Hyperparameterstuning)
-- 6. [XGBoost](#XGBoost)
-- 7. [Resources:](#Resources:)
-- 8. [Dependencies](#Dependencies)
-- 9. [Virtual environment](#Virtualenvironment)
+- 6. [Hybrid model](#Hybridmodel)
+- 7. [XGBoost](#XGBoost)
+- 8. [Other](#Other)
+- 9. [Resources:](#Resources:)
+- 10. [Dependencies](#Dependencies)
+- 11. [Virtual environment](#Virtualenvironment)
 
 <!-- vscode-markdown-toc-config
 	numbering=true
@@ -44,7 +46,7 @@
 ---
 
 <details>
-<summary>Protein mutation stability</summary>
+<summary>2. Protein mutation stability</summary>
 
 ## 2. <a name='Proteinmutationstability'></a>Protein mutation stability
 
@@ -75,7 +77,7 @@ Example: I changed the amino acid on position 14 from Glycine to Alanine, is the
 ---
 
 <details>
-<summary>Data</summary>
+<summary>3. Data</summary>
 
 ## 3. <a name='Data'></a>Data
 
@@ -94,7 +96,7 @@ There a some data available that link protein mutation with a measure of stabili
 ---
 
 <details>
-<summary>Features</summary>
+<summary>4. Features</summary>
 
 ## 4. <a name='Features'></a>Features
 
@@ -231,7 +233,7 @@ And then I computed a bunch of features based on the sequence and the 3D structu
 ---
 
 <details>
-<summary>First results</summary>
+<summary>5. First results</summary>
 
 ## 5. <a name='Firstresults'></a>First results
 
@@ -306,7 +308,9 @@ The graph show that is mostly random, at first I thought this was due to the fac
 ---
 
 <details>
-<summary>Hybrid model</summary>
+<summary>6. Hybrid model</summary>
+
+## 6. <a name='Hybridmodel'></a>Hybrid model
 
 To try and improve our result we tried to use both a CNN model able to learn from the voxel representation of the 3D structure from the protein (before and after mutation) in the same way as ThermoNet, and then in a later step add the computed features (such as blosum, demask, dssp etc.) to the "features" from the last layer of the CNN. We then concatenate those features together and put it through a regression model.
 
@@ -363,9 +367,9 @@ We attained better result than with cnn only or regression only (the code allow 
 ---
 
 <details>
-<summary>XGBoost</summary>
+<summary>7. XGBoost</summary>
 
-## 6. <a name='XGBoost'></a>XGBoost
+## 7. <a name='XGBoost'></a>XGBoost
 
 In the same way that we can switch between CNN_only, regression_only or hybrid for the model type, we can also choose "xgboost"
 This is similar to the regression only, only this time implemented with an optimized distributed gradient boosting model instead of a neural network.
@@ -383,6 +387,8 @@ The xgboost outperforms slightly the regression_only neural network model in the
 <details>
 <summary>Other</summary>
 
+## 8. <a name='Other'></a>Other
+
 - max ddG & dTm values: most mutations are destabilizing (meaning <0 ddG or dTm values) therefore in order to have the best leaderboard result we focus on those by specifying in the training config files a max value for ddG and dTm. We also select only protein with a max length of 600 (the submission protein has a length of 220 amino acids)
 - [Principal component analysis (PCA)](https://en.wikipedia.org/wiki/Principal_component_analysis) is a method implemented in this project to reduce the number of features in order to avoid overfitting to the dataset (keep in mind we only have ~400 proteins in our dataset, the new protein for submission is different from those)
 - **missing values of ddG or dTm in the dataset** and **multi ouptut models**. Because the dataset is the result of merging different experimental results together, some mutations have a ddG value, some dTm, and some both. I did try to use ddG as a feature in order to predict dTm (or vice versa) but the average error was too important in order to augment my dataset. Another thing I tried in the neural networks was too have 2 targets (ddG and dTm) and compute a loss on the available data. But the result was not better than a training on ddG or dTm only.
@@ -391,13 +397,13 @@ The xgboost outperforms slightly the regression_only neural network model in the
 
 ---
 
-## 7. <a name='Resources:'></a>Resources:
+## 9. <a name='Resources:'></a>Resources:
 
 See the Notion export in resources/ for more infos
 
 Some additionnal prediction of protein folding were done using [alphafold notebook](https://colab.research.google.com/github/deepmind/alphafold/blob/main/notebooks/AlphaFold.ipynb#scrollTo=woIxeCPygt7K)
 
-## 8. <a name='Dependencies'></a>Dependencies
+## 10. <a name='Dependencies'></a>Dependencies
 
 Some features are computed using msms, see [this link for download](https://ccsb.scripps.edu/msms/downloads/), as well as [mgltools from the same authors](https://ccsb.scripps.edu/mgltools/downloads/). See [ssbio on how to install msms](https://ssbio.readthedocs.io/en/latest/instructions/msms.html)
 
@@ -411,7 +417,7 @@ Voxel representations of relaxed 3D structure are computed using [acellera htmd]
 
 cuML is used for PCA, see the [git repo](https://github.com/rapidsai/cuml)
 
-## 9. <a name='Virtualenvironment'></a>Virtual environment
+## 11. <a name='Virtualenvironment'></a>Virtual environment
 
 This project use pipenv to handle the dependencies, although in some devices (notably GCP compute engine) the installation of pytorch was done directly.
 [See pipenv documentation](https://pipenv.pypa.io/en/latest/)
