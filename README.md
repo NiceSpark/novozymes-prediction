@@ -28,20 +28,20 @@
 
 ## 1. <a name='CodeStructure'></a>Code Structure
 
-- The project is constituted for the most part in jupyter notebooks and python script aimed at creating a global dataset which merges multiple source of experimental data for both ddG and dTm values, all linked to protein mutations.
+- The project is constituted for the most part of jupyter notebooks and python scripts aimed at creating a global dataset which merges multiple source of experimental data for both ddG and dTm values, all linked to protein mutations.
 - Therefore at the root of the project there are 6 jupyter notebooks aimed at using the experimental results that can be found online and are locally stored in data/ (see [data sources.csv](data/sources.csv)).
 - The output of the jupyter notebooks at the root of the project will then be stored in a folder in data/main_dataset_creation/outputs/.
-- In order to compute the different features used we need to have the 3D structure (we use alphafold2 predicted structures), but also the relaxed structure computed with the rosetta software (The purpose of Rosetta's relax mode is to lower the energy of a structure by making small adjustements to the backbone and sidechain torsion angles) for both wild and mutated protein sequences. The code to do this is in [compute_mutated_structures](compute_mutated_structures/)
-  => This computation of the mutated structure is quite heavy, I ended up using free Google Cloud Platform credits to do it on a 32 vCPUs machine.
+- In order to compute the different features used we need to have the 3D structures (we use alphafold2 predicted structures), but also the relaxed structure computed with the rosetta software (The purpose of Rosetta's relax mode is to lower the energy of a structure by making small adjustements to the backbone and sidechain torsion angles) for both wild and mutated protein sequences. The code to do this is in [compute_mutated_structures](compute_mutated_structures/)
+  - This computation of the mutated structure is quite heavy, I ended up using free Google Cloud Platform credits to do it on a 32 vCPUs machine.
 - Finally the code in the [training folder](training/) notably [the train notebook](training/train.ipynb) use the dataset with features from data/main_dataset_creation and the computed 3D structures in compute_mutated_structures (in the case of a cnn_only or hybrid model) to both train a model, compute the learning curve and compute the submission results.
 - In order to configurate the training 2 distinct config files exist in training/:
   - [config_xgboost.json](training/config_xgboost.json)
   - [config_hybrid_nn.json](training/config_hybrid_nn.json)
-    Those config files allow the user to specify all important aspect relative to the model training, such as:
-    - the model type: xgboost or one of [hybrid, cnn_only, regression_only]
-    - various model specifications (fully connected layer size etc.)
-    - the dataset version & the features to use
-    - the number of kfold, the use of a cuda device or not etc.
+- Those config files allow the user to specify all important aspect relative to the model training, such as:
+  - the model type: xgboost or one of [hybrid, cnn_only, regression_only]
+  - various model specifications (fully connected layer size etc.)
+  - the dataset version & the features to use
+  - the number of kfold, the use of a cuda device or not etc.
 - Each training is logged (with results, graphs and models+scaler if specified) in training/outputs
 - In order to do hyperparameter tuning we used wandb for visualization and optuna (or wandb sweep) for finding optimums.
 
@@ -399,12 +399,20 @@ The xgboost outperforms slightly the regression_only neural network model in the
 
 ---
 
+<details>
+<summary>9. Resources</summary>
 ## 9. <a name='Resources:'></a>Resources:
 
 See the Notion export in resources/ for more infos
 
 Some additionnal prediction of protein folding were done using [alphafold notebook](https://colab.research.google.com/github/deepmind/alphafold/blob/main/notebooks/AlphaFold.ipynb#scrollTo=woIxeCPygt7K)
 
+</details>
+
+---
+
+<details>
+<summary>10. Dependencies</summary>
 ## 10. <a name='Dependencies'></a>Dependencies
 
 Some features are computed using msms, see [this link for download](https://ccsb.scripps.edu/msms/downloads/), as well as [mgltools from the same authors](https://ccsb.scripps.edu/mgltools/downloads/). See [ssbio on how to install msms](https://ssbio.readthedocs.io/en/latest/instructions/msms.html)
@@ -419,8 +427,17 @@ Voxel representations of relaxed 3D structure are computed using [acellera htmd]
 
 cuML is used for PCA, see the [git repo](https://github.com/rapidsai/cuml)
 
+</details>
+
+---
+
+<details>
+<summary>11. Virtual environment</summary>
+
 ## 11. <a name='Virtualenvironment'></a>Virtual environment
 
 This project use pipenv to handle the dependencies, although in some devices (notably GCP compute engine) the installation of pytorch was done directly.
 [See pipenv documentation](https://pipenv.pypa.io/en/latest/)
 See the dependencies sections for more infos on package outside the pipenv.
+
+</details>
